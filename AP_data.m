@@ -3,21 +3,20 @@ classdef AP_data
     properties
         Boarder_Gaps = [15, 15];
         activpal_action_list = {'1) INSERT EVENT', '2) MARK WORK', '3) UNDO INSERT'};
-        datenum_formatIn = 'dd-mmm-yyyy HH:MM:SS';
 
     end
     
-    methods
+    methods (Static) 
         
         % IMPORTING ACTIVPAL CSV FILE
-        function varargout = import_activpal_func(varargin)
+        function varargout = import_activpal_func
             [f1,p1] = uigetfile('*.csv');
             
             % Import Data from Activpal File
             temp_data = csvread(horzcat(p1,f1), 1, 0);
             
             % Julian to Gregorian Conversion
-            Datenum_formatIn = varargin{1}.datenum_formatIn;
+            Datenum_formatIn = 'dd-mmm-yyyy HH:MM:SS';
             dates =  temp_data(:,1);
             date_vector = datevec((dates + datenum('30-12-1899 00:00:00', Datenum_formatIn)), Datenum_formatIn);      
             formatted_date = datetime(date_vector);
@@ -51,13 +50,12 @@ classdef AP_data
         
         % PARSING ACTIVPAL DATA FOR ANALYSIS / PLOTTING
         function varargout = parse_activpal_data(varargin)
-            % 1 = Obj Properties 
-            % 2 = Activpal Memory 
-            % 3 = Selected Date 
-            % 4 = For Plotting (T/F) 
+            % 1 = Activpal Memory 
+            % 2 = Selected Date 
+            % 3 = For Plotting (T/F) 
             
-            activpal_datetime = datenum(varargin{2}{1});
-            activpal_matrix = varargin{2}{2};
+            activpal_datetime = datenum(varargin{1}{1});
+            activpal_matrix = varargin{1}{2};
             
             % Check for if Parse for data or Prase for Plotting when parsed
             % for date the input 3 (selected_date) will be a 2 element
@@ -67,134 +65,171 @@ classdef AP_data
             % for start date. End date will be the same date at the very
             % last second before the next day 
             
-            switch varargin{4}
+            switch nargin
                 
-                case 0
-                    start_date = datenum(varargin{3}{1});
-                    end_date = datenum(varargin{3}{2}); 
+                case 2
+                    start_date = datenum(datetime(varargin{2})+hours(0));
+                    end_date = datenum(datetime(varargin{2})+hours(23)+minutes(59)+seconds(59));
                     
-                    [~, k_start] = min(abs(activpal_datetime - start_date));
+                    try
+                        indexes = find((activpal_datetime >= start_date) & (activpal_datetime <= end_date));
+                        logindexs = [indexes(1), indexes(end)];
+                        
+                        if indexes(1) ~= 1
+                            indexes = [indexes(1)-1; indexes];
+                        end
+                        
+                        if indexes(end) ~= length(activpal_datetime)
+                            indexes = [indexes; indexes(end)+1];
+                        end
+                        
+                        time_frame = activpal_datetime(indexes);
+                        data_frame = activpal_matrix(indexes,:);
+                        
+                        logstr = horzcat('Timeframe plotted between ', datestr(activpal_datetime(logindexs(1))), ' to ', datestr(activpal_datetime(logindexs(end))));
+                        
+                    catch
+                        logstr = 'Error in determining start and end dates';
+                    end
+                    
+                case 3
+                    start_date = datenum(varargin{2});
+                    end_date = datenum(varargin{3});
+                    
+                    try
+                        indexes = find((activpal_datetime >= start_date) & (activpal_datetime <= end_date));
+                        logindexs = [indexes(1), indexes(end)];
+                        
+                        time_frame = activpal_datetime(indexes);
+                        data_frame = activpal_matrix(indexes,:);
+                        
+                        logstr = horzcat('Timeframe extracted between ', datestr(activpal_datetime(logindexs(1))), ' to ', datestr(activpal_datetime(logindexs(end))));
+                        
+                    catch
+                        logstr = 'Error in determining start and end dates';
+                    end
+            end
+            
+            varargout{1} = {time_frame, data_frame};
+            varargout{2} = logstr; 
+            
+        end
+        
+        % DELETE ACTIVPAL HOURLY PLOTS
+        function delete_activpal_plots(varargin)
+            delete(findobj(varargin{1}.d2d_panel,'type','axes'));
+        end
+        
+        % INSERT NEW EVENT TO ACTIVPAL DATA IN MEMORY
+        function varargout = insertToActivpalData(varargin)
+            
+            f = waitbar(0, 'Inserting Event...'); 
+            
 
-                    if end_date < activpal_datetime(end)
-                        [~, k_end] = min(abs(activpal_datetime - end_date));
-                    else
-                        k_end = activpal_datetime(end);
+            activpal_memory_data = varargin{1};
+            time_selected_for_insertion = varargin{2};
+            InsertDay = varargin{3};
+            
+            insertion_datenum = datenum(horzcat(datestr(InsertDay), ' ', time_selected_for_insertion));
+            data_for_insertion_time = datenum(activpal_memory_data{1});
+            data_for_insertion_matrix = activpal_memory_data{2};
+            
+            k = 1;
+            while 1
+                try
+                    if ismember(k/length(data_for_insertion_time), [0.1:0.1:0.9])
+                        waitbar(k/length(data_for_insertion_time), f , 'Inserting Event...');
                     end
                     
-                case 1
-                    start_date = datenum(varargin{3});
-                    end_date1 = datenum(datetime(varargin{3})+days(1)-seconds(1));
-                    end_date2 = datenum(datetime(varargin{3})+days(1));
-                    
-                    [~, k_start] = min(abs(activpal_datetime - start_date));
-                    
-                    if k_start > 1
-                        k_start = k_start - 1;
-                    end
-                    
-                    if end_date1 < activpal_datetime(end)
-                        [~, k_end] = min(abs(activpal_datetime - end_date1));
+                    if (data_for_insertion_time(k) < insertion_datenum) && (insertion_datenum <  data_for_insertion_time(k+1))
                         
-                        if activpal_datetime(k_end) <= end_date2
-                            k_end = k_end + 1;
-                        end
+                        insert_this_vector = data_for_insertion_matrix(k+1,:);
                         
-                    else
-                        k_end = activpal_datetime(end);
-                    end
-                    
-            end
-            
-            varargout{1} = {activpal_datetime(k_start:k_end); activpal_matrix(k_start:k_end,:)};
-            
-        end
-        
-        % PARSE ACTIVPAL DATA IN HOURLY DATA FOR PLOTTING
-        function varargout = activpal_list_func(varargin)
-            display_data = varargin{2}{2};
-            date_data = varargin{2}{1};
-            
-            [xb, yb] = stairs(datetime(datevec(date_data)), display_data(:,3)); 
-            date_data = xb; 
-            
-            % Convert to Date Vector 
-            date_vector = datevec(date_data);
-            
-            % Prase out only day of date vector 
-            parsed_day = date_vector(:,3);
-            
-            % Parse out only the day that is the highest frequency
-            parsed_dayhour = date_vector(parsed_day ==  mode(date_vector(:,3)), :);
-            parsed_daydata = yb(parsed_day ==  mode(date_vector(:,3)), :); 
-            
-            % Find when hours transitions
-            hour_idx = [find(diff(parsed_dayhour(:,4))); length(parsed_dayhour(:,4))];
-            
-            % Find which hours are used
-            hours_used = date_vector(hour_idx',4);
-            
-            n = 0;
-            day_data1 = cell(24,1);
-            day_data2 = cell(24,1);
-            
-            for i = 1:24
-                if any(hours_used == n)
-                    rows = find(parsed_dayhour(:,4) == n);
-                    % If first of the hour used & first of the week
-                    if rows(1) == 1 && ((datenum(parsed_dayhour(rows(1),:)) == datenum(xb(1))) == 1)
-                        day_data1{i} = datetime(parsed_dayhour(rows(1):rows(end)+1,:));
-                        day_data2{i} = parsed_daydata(rows(1):rows(end)+1,:);
-                    
-                    % 
-                    elseif rows(1) == 1 && ((datenum(parsed_dayhour(rows(1),:)) == datenum(xb(1))) == 0)
-                        day_data1{i} = [xb(1:2); datetime(parsed_dayhour(rows(1):rows(end)+1,:))];
-                        day_data2{i} = [yb(1:2); parsed_daydata(rows(1):rows(end)+1,:)];
+                        insert_this_vector(2) = (data_for_insertion_time(k+1) - insertion_datenum).*24.*3600;
+                        insert_this_vector(3) = data_for_insertion_matrix(k,3);
                         
-                    elseif rows == length(parsed_dayhour) && ((datenum(parsed_dayhour(length(parsed_dayhour),:)) == datenum(xb(1))) == 0)
-                        day_data1{i} = [datetime(parsed_dayhour(rows(1):rows(end),:)); xb(end-1:end)];
-                        day_data2{i} = [parsed_daydata(rows(1):rows(end),:); yb(end-1:end)];
+                        data_for_insertion_matrix(k,2) = (data_for_insertion_matrix(k,2) - insert_this_vector(2));
                         
-                    else
-                        day_data1{i} = datetime(parsed_dayhour(rows(1)-1:rows(end)+1,:));
-                        day_data2{i} = parsed_daydata(rows(1):rows(end),:);
+                        data_for_insertion_time = [data_for_insertion_time(1:k); insertion_datenum; data_for_insertion_time(k+1:end)];
+                        data_for_insertion_matrix = [data_for_insertion_matrix(1:k,:); insert_this_vector; data_for_insertion_matrix(k+1:end,:)];
+                        
+                        logstr = horzcat('Event Created for ', datestr(insertion_datenum));
+                        
+                        break
                     end
-                    n = n + 1;
-                    
-                else
-                    start_time = datetime([date_vector(1,[1:2]), mode(date_vector(:,3)), n, 0, 0]);
-                    end_time = datetime([date_vector(1,[1:2]), mode(date_vector(:,3)), n, 59, 59]);
-                    day_data1{i} = [start_time; start_time; end_time; end_time];
-                    day_data2{i} = nan(length(day_data1{i}),1);
-                    
-                    if any(hours_used < n) ==  0
-                        % day_data2{i}(:,3) = parsed_daydata(hour_idx(1),1);
-                    elseif any(hours_used < n) ==  1
-                        if ~isempty(parsed_daydata(hour_idx(find((hours_used < n) == 0, 1, 'first')-1)+1,1)) == 1
-                            day_data2{i}(:) = parsed_daydata(hour_idx(find((hours_used < n) == 0, 1, 'first')-1),1);
-                        else
-                            day_data2{i}(:) = parsed_daydata(hour_idx(find((hours_used < n) == 0, 1, 'first')-1)+1,1);
-                        end
-                    end
-                    n = n + 1;
+                    k = k + 1;
+                catch
+                    logstr = 'Could not create event';
+                    break
                 end
-                
-                
-                
             end
             
-            subplot_columns = 6;
-            subplot_rows = 4;
+            varargout{1} = {datetime(datestr(data_for_insertion_time)), data_for_insertion_matrix};
+            varargout{2} = logstr; 
             
-            varargout{1} = [day_data1, day_data2];
-            varargout{2} = [subplot_rows, subplot_columns];
+            waitbar(1, f , 'Inserting Event...');
+            close(f)
+
         end
         
+        % CALCULATE OUTCOME VARIABLES
+        function varargout = calculate_activpalData(varargin)
+            
+            activpal_data = varargin{1};
+            tempStart_time = varargin{2};
+            tempEnd_time = varargin{3};
+            
+            datenumbers = datenum(activpal_data{1});
+            
+            time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
+            
+            % time_frame_dates = activpal_data{1}(time_frame_index); 
+            time_frame_data = activpal_data{2}(time_frame_index',:);
+            
+            time_frame_data_activity = time_frame_data(:,3);
+            time_frame_data_MET = time_frame_data(:,5); 
+            time_frame_data_interval = time_frame_data(:,2);
+            
+            n = 1; 
+            total_time = zeros(1,3); 
+            for i = 0:2
+                temp_data_activity = time_frame_data(time_frame_data_activity == i, :);
+                total_time(n) = sum(temp_data_activity(:,2))./60;
+                n = n + 1;
+            end
+            
+            MET_count{1} = time_frame_data(time_frame_data_MET < 3.0, 2);
+            MET_count{2} = time_frame_data((time_frame_data_MET >= 3.0) & (time_frame_data_MET <= 6.0), 2);
+            MET_count{3} = time_frame_data(time_frame_data_MET > 6.0, 2);
+            
+            Time_In_MET = cellfun(@sum, MET_count)./60;
+            
+            time_frame_data_sit_transitions = time_frame_data_activity;
+            time_frame_data_sit_transitions(time_frame_data_sit_transitions == 2) = 1; 
+            sit_to_upright_transitions = numel(find(diff(time_frame_data_sit_transitions) == 1));
+            
+            prolonged_sitting = sum(time_frame_data((time_frame_data_activity == 0) & (time_frame_data_interval >= 1800),2))./60;
+            
+            varargout{1} = total_time; % minutes spent sitting, standing, and stepping 
+            varargout{2} = Time_In_MET; % Time in MET Categories
+            varargout{3} = sit_to_upright_transitions; % Sit to Upright Transitions
+            varargout{4} = prolonged_sitting; % Minute Spent in Prolonged Sitting 
+        end
+        
+    end
+    
+    methods
+        
+        % PLOT ACTIVPAL HOURLY PLOTS
         function gen_subplot_coordinates(varargin)
             handles = varargin{2};
             Panel_OuterPosition = int16(handles.d2d_panel.OuterPosition);
             Boarder_Gap = varargin{1}.Boarder_Gaps;
-            plot_values = varargin{3};
-            seg_data = varargin{4};
+            plot_values = [6,4]; % Column, Rows 
+            seg_data = varargin{3};
+            
+            Timedate = datetime(datestr(seg_data{1})); 
+            Scores = seg_data{2}(:,3); 
             
             Max_panel_width = int16(Panel_OuterPosition(3));
             Max_panel_height = int16(Panel_OuterPosition(4));
@@ -222,31 +257,14 @@ classdef AP_data
                         'OuterPosition', [Subplot_left Subplot_bottom, Subplot_width, Subplot_height],...
                         'FontSize', 7, 'LineWidth', 0.25);
                     
-                    Timedate = seg_data{n,1};
-                    Scores = seg_data{n,2};
                     stairs(Timedate, Scores, '-', 'LineWidth', 0.05)
                     
-                    %                     if any(isnan(seg_data{n,2}(:,3)))
-                    %                         step(seg_data{n,1},seg_data{n,2}(:,3), '.');
-                    %                     else
-                    %                         Timedate = seg_data{n,1};
-                    %                         Scores = seg_data{n,2}(:,3);
-                    %                         Timedate(Scores == 2);
-                    %
-                    %                         for I = 0:2
-                    %                             Timedate = seg_data{n,1};
-                    %                             Scores = seg_data{n,2}(:,3);
-                    %                             step(Timedate(Scores == I), Scores(Scores == I), '.', 'LineWidth', 0.1); hold on;
-                    %                         end
-                    %
-                    %                     end
-                    
-                    dv = datevec(seg_data{n,1}(1));
+                    dv = datenum(varargin{4});
                     
                     fmtIn = 'HH:MM';
-                    time_ticks = datetime(horzcat(dv(1:4),0,0)):hours(15/60):datetime(horzcat(dv(1:3), dv(4)+1, 0, 0));
+                    time_ticks = datetime(datestr(dv+hours(n-1):datenum(hours(15/60)):dv+hours(n)));
                     xticks(time_ticks);
-                    xlim([datetime(horzcat(dv(1:4), 0, 0)), datetime(horzcat(dv(1:3), dv(4)+1, 0, 0))])
+                    xlim([time_ticks(1), time_ticks(end)])
                     
                     time_labels = cell(1, length(time_ticks));
                     for I = 1:length(time_ticks)
@@ -270,53 +288,7 @@ classdef AP_data
                 end
             end
         end
-        
-        function delete_activpal_plots(varargin)
-            delete(findobj(varargin{2}.d2d_panel,'type','axes'));
-        end
-        
-        function varargout = insertToActivpalData(varargin)
-            
-            activpal_memory_data = varargin{2};
-            time_selected_for_insertion = varargin{3};
-            InsertDay = varargin{4};
-            Selected_day_number_in_Activpal = varargin{5};
-            
-            data_for_insertion = {activpal_memory_data{1}{Selected_day_number_in_Activpal},...
-                activpal_memory_data{2}{Selected_day_number_in_Activpal}};
-            
-            
-            temp_time = datevec(time_selected_for_insertion, 'HH:MM');
-            temp_day = datevec(InsertDay);
-            
-            insertion_datetime = datetime([temp_day(1:3), temp_time(4:6)]);
-            
-            k = 1;
-            while 1
-                try
-                    if (data_for_insertion{1}(k) < insertion_datetime) && (insertion_datetime <  data_for_insertion{1}(k+1))
-                       
-                        insert_this_vector = data_for_insertion{2}(k+1,:);
-                        insert_this_vector(2) = seconds(data_for_insertion{1}(k+1) - insertion_datetime);
-                        insert_this_vector(3) = data_for_insertion{2}(k,3);
-                        
-                        data_for_insertion{2}(k,2) = data_for_insertion{2}(k,2) - insert_this_vector(2);
-                        
-                        
-                        data_for_insertion{1} = [data_for_insertion{1}(1:k,:); insertion_datetime; data_for_insertion{1}(k+1:end,:)];
-                        data_for_insertion{2} = [data_for_insertion{2}(1:k,:); insert_this_vector; data_for_insertion{2}(k+1:end,:)];
-                        break
-                    end
-                    k = k + 1;
-                catch
-                    break
-                end
-            end
-            
-            varargout{1} = data_for_insertion; 
-            
-        end
-        
+
         function varargout = extract_time_frame(varargin)
             
             working_data = varargin{2};
