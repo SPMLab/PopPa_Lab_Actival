@@ -83,6 +83,7 @@ classdef journal_data
             varargout{3} = table_data(2:end,:);
             varargout{4} = size(table_data,2);
             varargout{5} = duration{1};
+            varargout{6} = horzcat('Imported Journal File from ', p1, f1);
         end
         
     end

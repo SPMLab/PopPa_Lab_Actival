@@ -142,8 +142,6 @@ try
     handles.WorkStartInput.Enable = 'on'; 
     handles.WorkEndInput.Enable = 'on'; 
     
-    % Print Log Event 
-    logMessage.GenerateLogMessage(handles.log_box, logstr) 
     
 catch ME
      errordlg(ME.message, 'Error Alert');
@@ -163,9 +161,6 @@ try
     
     % Run Plot Activpal Function
     AP_obj.gen_subplot_coordinates(handles, parsed_data, start_date)
-    
-    % Print Log Event 
-    logMessage.GenerateLogMessage(handles.log_box, logstr) 
     
 catch ME
     errordlg(ME.message, 'Error Alert');
