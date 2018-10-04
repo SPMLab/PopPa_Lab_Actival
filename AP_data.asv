@@ -1,6 +1,19 @@
 classdef AP_data
     
     properties
+        Boarder_Gaps = [15, 15];
+        activpal_action_list = {'1) INSERT EVENT',...
+                                '2) MARK DATA',...
+                                '3) UNMARK DATA',...
+                                '4) INSERT WAKE',...
+                                '5) INSERT SLEEP',...
+                                '6) UNDO EVENT INSERT'};
+                            
+        valid_wear_threshold = 0.85; 
+        
+        MET_threshold = [3 6];
+        
+        Sleep_Algorithm = 1; 
         
     end
     
@@ -72,6 +85,10 @@ classdef AP_data
             
         end
         
+        
+        
+        
+        
         % PARSING ACTIVPAL DATA FOR ANALYSIS / PLOTTING
         function varargout = parse_activpal_data(varargin)
             % 1 = Activpal Memory
@@ -139,15 +156,19 @@ classdef AP_data
             
         end
         
+
+        
         % INSERT NEW EVENT TO ACTIVPAL DATA IN MEMORY
-        function  [handles, logstr] = insertToActivpalData(handles, time_selected, InsertDay)
+        function varargout = insertToActivpalData(varargin)
             
             f = waitbar(0, 'Inserting Event...');
             
             
-            activpal_memory_data = handles.activpal_data.memory;
+            activpal_memory_data = varargin{1};
+            time_selected_for_insertion = varargin{2};
+            InsertDay = varargin{3};
             
-            insertion_datenum = datenum(horzcat(datestr(InsertDay), ' ', time_selected));
+            insertion_datenum = datenum(horzcat(datestr(InsertDay), ' ', time_selected_for_insertion));
             data_for_insertion_time = datenum(activpal_memory_data{1});
             data_for_insertion_matrix = activpal_memory_data{2};
             
@@ -186,7 +207,8 @@ classdef AP_data
                 end
             end
             
-            handles.activpal_data.memory = {datetime(datestr(data_for_insertion_time)), data_for_insertion_matrix};
+            varargout{1} = {datetime(datestr(data_for_insertion_time)), data_for_insertion_matrix};
+            varargout{2} = logstr;
             
             waitbar(1, f , 'Inserting Event...');
             close(f)
@@ -194,19 +216,17 @@ classdef AP_data
         end
         
         % MARK ACTIVPAL DATA
-        function [handles logstr] = markActivpal(handles, tempStart_time, tempEnd_time)
-            indexes = find((datenum(handles.activpal_data.memory{1}) >= tempStart_time) & (datenum(handles.activpal_data.memory{1})  <= tempEnd_time));
-            handles.activpal_data.memory{2}(indexes(1):indexes(end),end) = 1;
-            
-            logstr = horzcat('Action marked between ', datestr(tempStart_time),' to ', datestr(tempEnd_time)); 
+        function activpal_data = markActivpal(activpal_data, tempStart_time, tempEnd_time)
+            indexes = find((datenum(activpal_data{1}) >= tempStart_time) & (datenum(activpal_data{1})  <= tempEnd_time));
+            activpal_data{2}(indexes(1):indexes(end),end) = 1;
         end
         
         % UNMARK ACTIVPAL DATA
-        function [handles, logstr] = unmarkActivpal(handles, tempStart_time, tempEnd_time)
-            indexes = find((datenum(handles.activpal_data.memory{1}) >= tempStart_time) & (datenum(handles.activpal_data.memory{1})  <= tempEnd_time));
-            handles.activpal_data.memory{2}(indexes(1):indexes(end),end) = NaN;
-            logstr = horzcat('Action unmarked between ', datestr(tempStart_time),' to ', datestr(tempEnd_time)); 
+        function activpal_data = unmarkActivpal(activpal_data, tempStart_time, tempEnd_time)
+            indexes = find((datenum(activpal_data{1}) >= tempStart_time) & (datenum(activpal_data{1})  <= tempEnd_time));
+            activpal_data{2}(indexes(1):indexes(end),end) = NaN;
         end
+        
         
         % CALCULATE OUTCOME VARIABLES
         function varargout = calculate_activpalData(varargin)
@@ -281,16 +301,17 @@ classdef AP_data
             
         end
         
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % PLOT ACTIVPAL HOURLY PLOTS
-        function [logstr] = gen_subplot_coordinates(handles, start_date)
+        function gen_subplot_coordinates(handles, start_date)
             delete(findobj(handles.d2d_panel,'type','axes'));
             
             x_axis_font = 9;
             y_axis_font = 9; 
             
             Panel_OuterPosition = int16(handles.d2d_panel.OuterPosition);
-            Boarder_Gap = [15, 20];
+            Boarder_Gap = [15, 5];
             plot_values = [6,4]; % Column, Rows
             
             Timedate = handles.activpal_data.memory{1};
@@ -303,7 +324,7 @@ classdef AP_data
             Subplot_width = (Max_panel_width-Boarder_Gap(1)*2)./plot_values(1);
             Subplot_height = (Max_panel_height-Boarder_Gap(2)*2)./plot_values(2);
             left_pos = [Boarder_Gap(1):Subplot_width:Subplot_width*int16(plot_values(1))];
-            bottom_pos = fliplr([Boarder_Gap(2):Subplot_height:(Subplot_height*int16(plot_values(2)))]);
+            bottom_pos = fliplr([Boarder_Gap(2):Subplot_height:(Subplot_height*int16(plot_values(2)))-15]);
             
             dv = datenum(start_date);
             
@@ -336,7 +357,7 @@ classdef AP_data
                     
                     yyaxis(ax{n}, 'left')
                     stairs(Timedate, Scores, '-', 'LineWidth', 0.05)
-                    xticks(time_ticks{n});
+                    xticks(time_ticks{ n});
                     xlim([time_ticks{n}(1), time_ticks{n}(end)])
                     xticklabels(time_labels{n});
                     yticks([0 1 2])
@@ -345,8 +366,8 @@ classdef AP_data
                     ax{n}.XAxis.FontSize = x_axis_font;
 
                     yyaxis(ax{n}, 'right')
-                    stem(Timedate, Markers,'r', 'LineWidth', 0.05)
-                    yticks([0 1 2 3])
+                    stem(Timedate, Markers, 'r', 'LineWidth', 0.05)
+                    yticks([0 1 2])
                     ylim([-0.5, 3.5])
                     set(ax{n}, 'YTickLabel', []);
                     n = n + 1;
@@ -361,20 +382,18 @@ classdef AP_data
             
             for i = 6:6:6*4
                 yyaxis(ax{i}, 'right')
-                set(ax{i}, 'YTickLabel',  {'Unmarked', 'Action', 'Wake', 'Sleep'});
+                set(ax{i}, 'YTickLabel', {'Action', 'Sleep', 'Wake'});
                 ax{n}.YAxis(2).FontSize = y_axis_font;
             end
-            
-            logstr = horzcat('Hourly Plot Plotted for ', datestr(dv)); 
         end
         
         % PLOT ACTIVPAL FULL PLOT
-        function logstr = fullplot(handles)
+        function fullplot(handles)
             
-            x_axis_font = 10;
+            x_axis_font = 12;
             y_axis_font = 12;
             
-            activpal_data = handles.activpal_data.memory;
+            activpal_data = handles.activpal_data.memory; 
             
             delete(findobj(handles.d2d_panel2,'type','axes'));
             
@@ -383,23 +402,29 @@ classdef AP_data
                 'FontSize', 7,...
                 'LineWidth', 0.25);
             
-            yyaxis(ax, 'left')
+            yyaxis(ax, 'left') 
             stairs(activpal_data{1}, activpal_data{2}(:,3));
-            yticks([0 1 2])
             ylim([-0.5, 2.5])
-            set(ax, 'YTickLabel', {'Sedentary', 'Standing', 'Stepping'});
+            set(ax, 'YTickLabel', []);
             
-            yyaxis(ax, 'right')
-            stem(activpal_data{1}, activpal_data{2}(:,end), 'r', 'LineWidth', 0.05)
-            yticks([0 1 2 3])
-            ylim([-0.5, 3.5])
-            set(ax, 'YTickLabel', {'Unmarked', 'Action', 'Wake', 'Sleep'})
             
-            ax.YAxis(1).FontSize = y_axis_font;
-            ax.YAxis(2).FontSize = y_axis_font;
-            ax.XAxis.FontSize = x_axis_font;
+             yticks([0 1 2])
+                    ylim([-0.5, 2.5])
+                    set(ax{n}, 'YTickLabel', []);
+                    ax{n}.XAxis.FontSize = x_axis_font;
+
+                    yyaxis(ax{n}, 'right')
+                    stem(Timedate, Markers, 'r', 'LineWidth', 0.05)
+                    yticks([0 1 2])
+                    ylim([-0.5, 3.5])
+                    set(ax{n}, 'YTickLabel', [])
+                    
             
-            logstr = horzcat('Full Plot Plotted'); 
+            yticks([0 1 2])
+            yticklabels({'Sedentary', 'Standing', 'Stepping'})
+            ax.XAxis.FontSize = 12;
+            ax.YAxis(1).FontSize = 12;
+            
         end
         
         % DELETE ACTIVPAL HOURLY PLOTS
@@ -408,10 +433,46 @@ classdef AP_data
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
+        
+        function [activpal_data, logstr] = insertSleepWake(activpal_data, time_selected_for_insertion, InsertDay, sleepwake)
+            insertion_datenum = datenum(datestr(horzcat(datestr(InsertDay), ' ', time_selected_for_insertion)));
+            data_for_insertion_time = datenum(activpal_data{1});
+            data_for_insertion_matrix = activpal_data{2};
+            
+            activities = {'Sedentary', 'Standing', 'Stepping'};
+            [~, k] = min(abs(data_for_insertion_time-insertion_datenum));
+            
+            switch data_for_insertion_matrix(k,3)
+                case 0
+                    action = activities{1};
+                case 1
+                    action = activities{2};
+                case 2
+                    action = activities{3};
+            end
+            
+            if strcmp(sleepwake, 'sleep')
+                data_for_insertion_matrix(k,end) = 2;
+                logstr = horzcat('Sleep Time Marked at ', datestr(data_for_insertion_time(k)),  ' as ', action); 
+                
+            elseif strcmp(sleepwake, 'wake')
+                data_for_insertion_matrix(k,end) = 3;
+                logstr = horzcat('Wake Time Marked at ', datestr(data_for_insertion_time(k)),  ' as ', action); 
+            else
+                logstr = 'No Wake/Sleep Event Marked';
+            end
+            
+            activpal_data = {data_for_insertion_time, data_for_insertion_matrix};
+            
+        end
+        
     end
+
     
     methods
         
+
+
         function varargout = extract_time_frame(varargin)
             
             working_data = varargin{2};

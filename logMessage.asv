@@ -1,9 +1,0 @@
-classdef logMessage
-    methods (Static) 
-        function varargout = GenerateLogMessage(varargin)
-            
-            varargin{1}.String = vertcat(varargin{2},(varargin{1}.String))
-        end
-    end
-    
-end
