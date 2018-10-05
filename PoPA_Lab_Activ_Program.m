@@ -176,12 +176,7 @@ try
                 guidata(hObject, handles);
                 
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+
                 
                 
             case 2
@@ -192,12 +187,7 @@ try
                 [handles, logstr] = AP_data.markActivpal(handles, tempStart_time, tempEnd_time);
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+ 
                 
                 
             case 3
@@ -207,12 +197,7 @@ try
                 [handles, logstr] = AP_data.unmarkActivpal(handles, tempStart_time, tempEnd_time);
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+ 
                 
                 
             case 4
@@ -222,13 +207,7 @@ try
                 [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+        
                 
                 
             case 5
@@ -239,13 +218,7 @@ try
                 guidata(hObject, handles);
                 
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+   
                 
             case 6
                 
@@ -275,7 +248,7 @@ try
                 msg{6} = sprintf(L6);
                 msg{7} = sprintf(L7);
                 
-                msb = msgbox(msg);
+      
                 
                 
             case 7
@@ -284,12 +257,7 @@ try
                 handles.activpal_data.memory = handles.activpal_data.working;
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, 'Undo Previous Action')
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+
                 
             otherwise
                 
@@ -297,7 +265,13 @@ try
         end
         
         close(f)
-      
+              logMessage.GenerateLogMessage(handles.log_box, logstr)
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
         
     end
     

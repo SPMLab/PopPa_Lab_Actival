@@ -222,13 +222,7 @@ try
                 [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+        
                 
                 
             case 5
@@ -259,8 +253,24 @@ try
                 L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
                 L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
                 L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
-                L5 = horzcat('Total valid wear m: ', sprintf('%.2f', prolonged_sitting));
-                L5
+                L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
+                L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
+                L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
+                
+                formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
+                fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
+                
+                msg = cell(4,1);
+                msg{1} = sprintf(L1);
+                msg{2} = sprintf(L2);
+                msg{3} = sprintf(L3);
+                msg{4} = sprintf(L4);
+                msg{5} = sprintf(L5);
+                msg{6} = sprintf(L6);
+                msg{7} = sprintf(L7);
+                
+                msb = msgbox(msg);
+                
                 
             case 7
                 
@@ -281,6 +291,7 @@ try
         end
         
         close(f)
+      
         
     end
     
