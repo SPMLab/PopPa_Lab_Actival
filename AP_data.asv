@@ -242,7 +242,7 @@ classdef AP_data
                     WakeSleep.Percent_Of_Actions_During_WakeSleep_Time_Frame = PercentDay;
                     WakeSleep.Total_Prolonged_Sed_Min = prolonged_sitting_day;
                     WakeSleep.Step_Count = Step_count_day;
-                    WakeSleep.Prolonged_Sed_Count = num_prolonged_sed_day;
+                    WakeSleep.Prolonged_Sed_Count = 
                     
                     %L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', total_time(1)), ' mins), Standing (', sprintf('%.2f', total_time(2)), ' mins) and Stepping (', sprintf('%.2f', total_time(3)), ' mins)');
                     %L2 = horzcat('Total time spent in Light MET (', sprintf('%.2f', Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', Time_In_MET(3)), ' mins)');
