@@ -49,6 +49,11 @@ try
     
     set(handles.d2d_panel2, 'Visible', 'off') 
     
+    handles.ControlParameters{1} = [3 6];
+    handles.ControlParameters{2} = 0.8;
+    handles.ControlParameters{3} = 1;
+    guidata(hObject, handles);
+    
 catch ME
     errordlg(ME.message, 'Error Alert');
     set(handles.activpal_import, 'Enable', 'off');  
@@ -163,41 +168,37 @@ try
         switch listselection
             case 1
                 % Save Current Activpal State for Undo
-                handles.activpal_data.working = handles.activpal_data.memory; 
+                handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
                 
                 % Run Insert Function
                 [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
-                guidata(hObject, handles); 
+                guidata(hObject, handles);
                 
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
                 
             case 2
-                                
+                
                 tempStart_time = datenum(handles.WorkStartInput.String);
                 tempEnd_time = datenum(handles.WorkEndInput.String);
-          
+                
                 [handles, logstr] = AP_data.markActivpal(handles, tempStart_time, tempEnd_time);
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
                 
-                [total_time, Time_In_MET, sit_to_upright_transitions, prolonged_sitting] = ...
-                    AP_data.calculate_activpalData(handles.activpal_data.memory, tempStart_time, tempEnd_time);
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
                 
-                L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', total_time(1)), ' mins), Standing (', sprintf('%.2f', total_time(2)), ' mins) and Stepping (', sprintf('%.2f', total_time(3)), ' mins)');
-                L2 = horzcat('Total time spent in Light MET (', sprintf('%.2f', Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', Time_In_MET(3)), ' mins)');
-                L3 = horzcat('Number of Sit to Upright Transitions: ', sprintf('%.2f', sit_to_upright_transitions));
-                L4 = horzcat('Total time spent in prolonged sitting: ', sprintf('%.2f', prolonged_sitting));
-                
-                % formatSpec = '%s\n%s\n%s\n%s\n';
-                % fprintf(formatSpec, L1, L2, L3, L4);
-                
-%                 msg = cell(4,1);
-%                 msg{1} = sprintf(L1);
-%                 msg{2} = sprintf(L2);
-%                 msg{3} = sprintf(L3);
-%                 msg{4} = sprintf(L4);
-%                 msb = msgbox(msg);
                 
             case 3
                 tempStart_time = datenum(handles.WorkStartInput.String);
@@ -206,20 +207,32 @@ try
                 [handles, logstr] = AP_data.unmarkActivpal(handles, tempStart_time, tempEnd_time);
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
-          
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                
             case 4
-                % Save Current Activpal State for Undo
-                handles.activpal_data.working = handles.activpal_data.memory; 
+                handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
                 
                 [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
                 
             case 5
-                % Save Current Activpal State for Undo
-                handles.activpal_data.working = handles.activpal_data.memory; 
+                handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
                 
                 [handles, logstr] = sleep_algorithm.insertSleep(handles, time_selected, InsertDay);
@@ -227,9 +240,43 @@ try
                 
                 logMessage.GenerateLogMessage(handles.log_box, logstr)
                 
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
             case 6
-                % Calculate Activpal Data 
-                Gobj = GUIobj([3 7], 0.8, 1); 
+                
+                [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                handles.ActionTimeFrame = ActionTimeFrame; 
+                handles.WakeSleep = WakeSleep; 
+                guidata(hObject, handles);
+                
+                L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
+                L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
+                L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
+                L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
+                L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
+                L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
+                L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
+                
+                formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
+                fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
+                
+                msg = cell(4,1);
+                msg{1} = sprintf(L1);
+                msg{2} = sprintf(L2);
+                msg{3} = sprintf(L3);
+                msg{4} = sprintf(L4);
+                msg{5} = sprintf(L5);
+                msg{6} = sprintf(L6);
+                msg{7} = sprintf(L7);
+                
+                msb = msgbox(msg);
+                
                 
             case 7
                 
@@ -237,51 +284,26 @@ try
                 handles.activpal_data.memory = handles.activpal_data.working;
                 guidata(hObject, handles);
                 logMessage.GenerateLogMessage(handles.log_box, 'Undo Previous Action')
+                start_date = GUIobj.find_list_StartDate(handles);
+                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
+                
+                logstr = AP_data.fullplot(handles);
+                logMessage.GenerateLogMessage(handles.log_box, logstr)
                 
             otherwise
                 
+                return
         end
         
         close(f)
-        
-        start_date = GUIobj.find_list_StartDate(handles);
-        logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-        logMessage.GenerateLogMessage(handles.log_box, logstr)
-        
-        logstr = AP_data.fullplot(handles);
-        logMessage.GenerateLogMessage(handles.log_box, logstr)
+      
         
     end
     
 catch ME
     errordlg(ME.message, 'Error Alert');
 end
-
-% --- Executes during object creation, after setting all properties.
-function journal_command_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject, 'String',  GUIobj.initialization_text); 
-
-% Miscellaneous
-% --------------------------------------------------------------------
-function journal_table_ButtonDownFcn(hObject, eventdata, handles)
-function WorkStartInput_Callback(hObject, eventdata, handles)
-function WorkStartInput_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function WorkEndInput_Callback(hObject, eventdata, handles)
-function WorkEndInput_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function ID_list_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-% --------------------------------------------------------------------
 
 
 % Wake/Sleep Detection 
@@ -290,22 +312,17 @@ end
 % Validity Idx 
 % MET Segregation and Find time spent in those MET zones 
 
-% Log Box Controls
+% LOGBOX 
 % --------------------------------------------------------------------
 function log_box_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to log_box (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 function log_box_Callback(hObject, eventdata, handles)
 % --------------------------------------------------------------------
 
-% Tab Controls
+% TAB CONTROLS
+% FILE TAB 
 % --------------------------------------------------------------------
 function FileIO_Callback(hObject, eventdata, handles)
 function Save_Activpal_Selection_Callback(hObject, eventdata, handles)
@@ -325,7 +342,7 @@ catch ME
     errordlg(ME.message, 'Error Alert');
 end
 % --------------------------------------------------------------------
-
+% VIEW TAB
 % --------------------------------------------------------------------
 function view_button_Callback(hObject, eventdata, handles)
 function hourly_plots_Callback(hObject, eventdata, handles)
@@ -337,56 +354,99 @@ function full_plot_Callback(hObject, eventdata, handles)
 set(handles.d2d_panel2, 'Visible', 'on')
 set(handles.d2d_panel, 'Visible', 'off')
 % --------------------------------------------------------------------
-
+% CONTROL TAB 
 % --------------------------------------------------------------------
 function controls_button_Callback(hObject, eventdata, handles)
 function setWearThreshold_Callback(hObject, eventdata, handles)
+try
+    prompt = {'Enter Valid Wear Threshold (0 - 1)'};
+    title = 'Set Valid Wear';
+    dims = [1 40];
+    definput = {num2str(handles.ControlParameters{2})};
+    answer = inputdlg(prompt,title,dims,definput);
+    
+    if isa(str2double(answer), 'numeric') && (str2double(answer) <= 1) && (str2double(answer) >= 0)
+        handles.ControlParameters{2} = str2double(answer);
+        guidata(hObject, handles);
+    else
+        errordlg('Invalid Input', 'Error Alert');
+    end
+    
+catch
+    errordlg('Invalid Input', 'Error Alert');
+end
 function SetMetThresholdButton_Callback(hObject, eventdata, handles)
+try
+    prompt = {'Light to Moderate', 'Moderate to Vigorous'};
+    title = 'Set MET';
+    dims = [1 40];
+    definput = {num2str(handles.ControlParameters{1}(1)), num2str(handles.ControlParameters{1}(2))};
+    answer = inputdlg(prompt,title,dims,definput);
+    
+    if isa(str2double(answer{1}), 'numeric') && isa(str2double(answer{1}), 'numeric') &&  (str2double(answer{1}) < str2double(answer{2}))
+        handles.ControlParameters{1} = [str2double(answer{1}), str2double(answer{2})];
+        guidata(hObject, handles);
+    else
+        errordlg('Invalid Input', 'Error Alert');
+    end
+    
+catch
+    errordlg('Invalid Input', 'Error Alert');
+end
 function sleepAlgorithmButton_Callback(hObject, eventdata, handles)
+function wakeSleep_method_closest_Callback(hObject, eventdata, handles)
+handles = sleep_algorithm.Sleep_AlgoSelection(handles, 1);
+guidata(hObject, handles); 
+function wakeSleep_method_Manual_Callback(hObject, eventdata, handles)
+handles = sleep_algorithm.Sleep_AlgoSelection(handles, 2);
+guidata(hObject, handles); 
+function wakeSleep_method_DeM_Callback(hObject, eventdata, handles)
+handles = sleep_algorithm.Sleep_AlgoSelection(handles, 3);
+guidata(hObject, handles); 
 % --------------------------------------------------------------------
 
 
 
 function wake_insert_Callback(hObject, eventdata, handles)
-% hObject    handle to wake_insert (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of wake_insert as text
-%        str2double(get(hObject,'String')) returns contents of wake_insert as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function wake_insert_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to wake_insert (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function sleep_insert_Callback(hObject, eventdata, handles)
-% hObject    handle to sleep_insert (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of sleep_insert as text
-%        str2double(get(hObject,'String')) returns contents of sleep_insert as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function sleep_insert_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sleep_insert (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+% Miscellaneous
+% --------------------------------------------------------------------
+function journal_table_ButtonDownFcn(hObject, eventdata, handles)
+function WorkStartInput_Callback(hObject, eventdata, handles)
+function WorkStartInput_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+function WorkEndInput_Callback(hObject, eventdata, handles)
+function WorkEndInput_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function ID_list_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function sleep_insert_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function journal_command_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+set(hObject, 'String',  GUIobj.initialization_text); 
+
+
+% --------------------------------------------------------------------

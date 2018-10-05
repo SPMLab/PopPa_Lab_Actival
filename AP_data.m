@@ -72,73 +72,6 @@ classdef AP_data
             
         end
         
-        % PARSING ACTIVPAL DATA FOR ANALYSIS / PLOTTING
-        function varargout = parse_activpal_data(varargin)
-            % 1 = Activpal Memory
-            % 2 = Selected Date
-            % 3 = For Plotting (T/F)
-            
-            activpal_datetime = datenum(varargin{1}{1});
-            activpal_matrix = varargin{1}{2};
-            
-            % Check for if Parse for data or Prase for Plotting when parsed
-            % for date the input 3 (selected_date) will be a 2 element
-            % vector stating start and end dates.
-            
-            % If parse for plotting, the start date is a one element date
-            % for start date. End date will be the same date at the very
-            % last second before the next day
-            
-            switch nargin
-                
-                case 2
-                    start_date = datenum(datetime(varargin{2})+hours(0));
-                    end_date = datenum(datetime(varargin{2})+hours(23)+minutes(59)+seconds(59));
-                    
-                    try
-                        indexes = find((activpal_datetime >= start_date) & (activpal_datetime <= end_date));
-                        logindexs = [indexes(1), indexes(end)];
-                        
-                        if indexes(1) ~= 1
-                            indexes = [indexes(1)-1; indexes];
-                        end
-                        
-                        if indexes(end) ~= length(activpal_datetime)
-                            indexes = [indexes; indexes(end)+1];
-                        end
-                        
-                        time_frame = activpal_datetime(indexes);
-                        data_frame = activpal_matrix(indexes,:);
-                        
-                        logstr = horzcat('Timeframe plotted between ', datestr(activpal_datetime(logindexs(1))), ' to ', datestr(activpal_datetime(logindexs(end))));
-                        
-                    catch
-                        logstr = 'Error in determining start and end dates';
-                    end
-                    
-                case 3
-                    start_date = datenum(varargin{2});
-                    end_date = datenum(varargin{3});
-                    
-                    try
-                        indexes = find((activpal_datetime >= start_date) & (activpal_datetime <= end_date));
-                        logindexs = [indexes(1), indexes(end)];
-                        
-                        time_frame = activpal_datetime(indexes);
-                        data_frame = activpal_matrix(indexes,:);
-                        
-                        logstr = horzcat('Timeframe extracted between ', datestr(activpal_datetime(logindexs(1))), ' to ', datestr(activpal_datetime(logindexs(end))));
-                        
-                    catch
-                        logstr = 'Error in determining start and end dates';
-                    end
-            end
-            
-            varargout{1} = {time_frame, data_frame};
-            varargout{2} = logstr;
-            
-        end
-        
         % INSERT NEW EVENT TO ACTIVPAL DATA IN MEMORY
         function  [handles, logstr] = insertToActivpalData(handles, time_selected, InsertDay)
             
@@ -194,7 +127,7 @@ classdef AP_data
         end
         
         % MARK ACTIVPAL DATA
-        function [handles logstr] = markActivpal(handles, tempStart_time, tempEnd_time)
+        function [handles, logstr] = markActivpal(handles, tempStart_time, tempEnd_time)
             indexes = find((datenum(handles.activpal_data.memory{1}) >= tempStart_time) & (datenum(handles.activpal_data.memory{1})  <= tempEnd_time));
             handles.activpal_data.memory{2}(indexes(1):indexes(end),end) = 1;
             
@@ -209,47 +142,136 @@ classdef AP_data
         end
         
         % CALCULATE OUTCOME VARIABLES
-        function varargout = calculate_activpalData(varargin)
-            
-            activpal_data = varargin{1};
-            tempStart_time = varargin{2};
-            tempEnd_time = varargin{3};
-            
-            datenumbers = datenum(activpal_data{1});
-            
-            time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
-            
-            % time_frame_dates = activpal_data{1}(time_frame_index);
-            time_frame_data = activpal_data{2}(time_frame_index',:);
-            
-            time_frame_data_activity = time_frame_data(:,3);
-            time_frame_data_MET = time_frame_data(:,5);
-            time_frame_data_interval = time_frame_data(:,2);
-            
-            n = 1;
-            total_time = zeros(1,3);
-            for i = 0:2
-                temp_data_activity = time_frame_data(time_frame_data_activity == i, :);
-                total_time(n) = sum(temp_data_activity(:,2))./60;
-                n = n + 1;
+        function [ActionTimeFrame, WakeSleep, logstr] = calculate_activpalData(handles)
+            try
+                tempWake_time = datenum(datetime(handles.wake_insert.String));
+                tempSleep_time = datenum(datetime(handles.sleep_insert.String));
+                tempStart_time = datenum(datetime(handles.WorkStartInput.String));
+                tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
+                
+                ActionTimeFrame = struct;
+                WakeSleep = struct;
+                
+                if (tempSleep_time > tempWake_time) && (tempEnd_time > tempStart_time)
+                    activpal_data = handles.activpal_data.memory;
+                    datenumbers = datenum(activpal_data{1});
+                    
+                    Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
+                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers <= tempSleep_time));
+                    SleepkWake_time_frame_index = SleepkWake_time_frame_index-1;
+                    
+                    % time_frame_dates = activpal_data{1}(time_frame_index);
+                    Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
+                    SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);  
+                    
+                    % Find Unmarked Within Action Timeframe
+                    Unmarked_ATF = Action_time_frame_data(Action_time_frame_data(:,end) == 0, :);
+                    % Find Marked Within Action Timeframe
+                    Marked_ATF = Action_time_frame_data(Action_time_frame_data(:,end) == 1, :);
+                    
+                    Action_time_frame_data_activity = Action_time_frame_data(:,3);
+                    Action_time_frame_data_MET = Action_time_frame_data(:,5);
+                    Acton_time_frame_data_interval = Action_time_frame_data(:,2);
+                    
+                    n = 1;
+                    total_time = zeros(1,3);
+                    total_timeSW = zeros(1,3);
+                    for i = 0:2
+                        temp_data_activity1 = Action_time_frame_data(Action_time_frame_data_activity == i, :);
+                        temp_data_activity2 = SleepWake_time_frame_data(SleepWake_time_frame_data(:,3) == i, :);
+
+                        total_time(n) = sum(temp_data_activity1(:,2))./60;
+                        total_timeSW(n) = sum(temp_data_activity2(:,2))./60;
+
+                        n = n + 1;
+                    end
+                    
+                    MET_count{1} = Action_time_frame_data(Action_time_frame_data_MET < 3.0, 2);
+                    MET_count{2} = Action_time_frame_data((Action_time_frame_data_MET >= 3.0) & (Action_time_frame_data_MET <= 6.0), 2);
+                    MET_count{3} = Action_time_frame_data(Action_time_frame_data_MET > 6.0, 2);
+                    
+                    Time_MET = cellfun(@sum, MET_count)./60;
+                    
+                    time_frame_data_sit_transitions = Action_time_frame_data;
+                    sed_breaks = time_frame_data_sit_transitions(time_frame_data_sit_transitions(:,3) == 2 | time_frame_data_sit_transitions(:,3) == 1, 2); 
+                    ActionTimeFrame.Sit_to_Upright_Transitions =  numel(sed_breaks((sed_breaks >= 60))); 
+                   
+                    
+                    TotalValidWearMin = sum(Marked_ATF(:,2))./60; % Total valid minutes 
+                    TotalInvalidWearMin = sum(Unmarked_ATF(:,2))./60; % Total invalid minutes
+                    ValidWearPercentage = TotalValidWearMin./(TotalInvalidWearMin + TotalValidWearMin); % Percentage of Valid re: Invalid
+                    TotalWakeMin = sum(SleepWake_time_frame_data(:,2))./60; % Total wake minutes
+                    PercentDayValidWear = TotalValidWearMin./TotalWakeMin; % Percent of day that was valid wear
+             
+                    
+                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step 
+                   
+                    
+                    PercentDay = total_timeSW./sum(total_timeSW); % of Day in Sed, Stand, Step
+                    
+                    % Total mintutes spent in extended sedentary bouts (?30
+                    % minutes) in Action Timeframe 
+                    prolonged_sitting_action = sum(Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60;
+                    num_prolonged_sed = numel((Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60); 
+                    % Total mintutes spent in extended sedentary bouts (?30
+                    % minutes) in Action Timeframe 
+                    
+                    % Total mintutes spent in extended sedentary bouts (?30
+                    % minutes) for Whole Wake Period
+                    prolonged_sitting_day = sum(SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800), 2))./60;
+                    num_prolonged_sed_day = numel((SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800),2))./60); 
+                    
+                    % Cumulative # Step Count in Action
+                    Step_count_action = Action_time_frame_data(end,4) - Action_time_frame_data(1,4);
+                    % Cumulative # Step Count in Day
+                    Step_count_day = SleepWake_time_frame_data(end,4) - SleepWake_time_frame_data(1,4);
+                    
+                    ActionTimeFrame.Total_Time = total_time; 
+                    ActionTimeFrame.Time_In_MET = Time_MET;
+                    ActionTimeFrame.Total_Valid_Wear_Min = TotalValidWearMin;
+                    ActionTimeFrame.Total_Invalid_Wear_Min = TotalInvalidWearMin;
+                    ActionTimeFrame.Valid_Wear_Percentage = ValidWearPercentage;
+                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent; 
+                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action; 
+                    ActionTimeFrame.Step_Count = Step_count_action; 
+                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed; 
+                    
+                    WakeSleep.Total_Time = total_timeSW; 
+                    WakeSleep.Total_Wake_Min = TotalWakeMin;
+                    WakeSleep.Percent_Day_of_Valid_Wear = PercentDayValidWear;
+                    WakeSleep.Percent_Of_Actions_During_WakeSleep_Time_Frame = PercentDay;
+                    WakeSleep.Total_Prolonged_Sed_Min = prolonged_sitting_day;
+                    WakeSleep.Step_Count = Step_count_day;
+                    WakeSleep.Prolonged_Sed_Count = num_prolonged_sed_day;
+                    
+                    %L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', total_time(1)), ' mins), Standing (', sprintf('%.2f', total_time(2)), ' mins) and Stepping (', sprintf('%.2f', total_time(3)), ' mins)');
+                    %L2 = horzcat('Total time spent in Light MET (', sprintf('%.2f', Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', Time_In_MET(3)), ' mins)');
+                    %L3 = horzcat('Number of Sit to Upright Transitions: ', sprintf('%.2f', sit_to_upright_transitions));
+                    %L4 = horzcat('Total time spent in prolonged sitting: ', sprintf('%.2f', prolonged_sitting));
+                    
+                    % formatSpec = '%s\n%s\n%s\n%s\n';
+                    % fprintf(formatSpec, L1, L2, L3, L4);
+                    
+                    %                 msg = cell(4,1);
+                    %                 msg{1} = sprintf(L1);
+                    %                 msg{2} = sprintf(L2);
+                    %                 msg{3} = sprintf(L3);
+                    %                 msg{4} = sprintf(L4);
+                    %                 msb = msgbox(msg);
+                   
+                    logstr = 'Calculated';
+                    
+                else
+                    ActionTimeFrame = struct;
+                    WakeSleep = struct;
+                    logstr = 'Non-Chronological Timeframe Pairs, Check Inputs';
+                end
+                
+            catch
+                ActionTimeFrame = struct;
+                WakeSleep = struct;
+                logstr = 'Invalid Timeframe Pairs, Check Inputs';
             end
-            
-            MET_count{1} = time_frame_data(time_frame_data_MET < 3.0, 2);
-            MET_count{2} = time_frame_data((time_frame_data_MET >= 3.0) & (time_frame_data_MET <= 6.0), 2);
-            MET_count{3} = time_frame_data(time_frame_data_MET > 6.0, 2);
-            
-            Time_In_MET = cellfun(@sum, MET_count)./60;
-            
-            time_frame_data_sit_transitions = time_frame_data_activity;
-            time_frame_data_sit_transitions(time_frame_data_sit_transitions == 2) = 1;
-            sit_to_upright_transitions = numel(find(diff(time_frame_data_sit_transitions) == 1));
-            
-            prolonged_sitting = sum(time_frame_data((time_frame_data_activity == 0) & (time_frame_data_interval >= 1800),2))./60;
-            
-            varargout{1} = total_time; % minutes spent sitting, standing, and stepping
-            varargout{2} = Time_In_MET; % Time in MET Categories
-            varargout{3} = sit_to_upright_transitions; % Sit to Upright Transitions
-            varargout{4} = prolonged_sitting; % Minute Spent in Prolonged Sitting
         end
         
         % EXPORT ACTIVPAL AS CSV

@@ -70,7 +70,23 @@ classdef sleep_algorithm
             logstr = horzcat('Sleep Time Marked at ', datestr(activpal_data_datenum(k)),  ' as ', action);
             handles.activpal_data.memory = {datetime(datestr(activpal_data_datenum)), activpal_data_matrix};
         end
-        
+       
+        function handles = Sleep_AlgoSelection(handles, selection)
+            switch selection
+                case 1
+                    handles.wakeSleep_method_closest.Checked = 'on';
+                    handles.wakeSleep_method_DeM.Checked = 'off';
+                    handles.wakeSleep_method_Manual.Checked = 'off';
+                case 2
+                    handles.wakeSleep_method_closest.Checked = 'off';
+                    handles.wakeSleep_method_DeM.Checked = 'off';
+                    handles.wakeSleep_method_Manual.Checked = 'on';
+                case 3
+                    handles.wakeSleep_method_closest.Checked = 'off';
+                    handles.wakeSleep_method_DeM.Checked = 'on';
+                    handles.wakeSleep_method_Manual.Checked = 'off';
+            end
+        end
         
         function prolongedAlgo(varargin)
         end
