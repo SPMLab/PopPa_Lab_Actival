@@ -175,9 +175,6 @@ try
                 [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-
-                
                 
             case 2
                 
@@ -185,9 +182,7 @@ try
                 tempEnd_time = datenum(handles.WorkEndInput.String);
                 
                 [handles, logstr] = AP_data.markActivpal(handles, tempStart_time, tempEnd_time);
-                guidata(hObject, handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
- 
+                guidata(hObject, handles); 
                 
                 
             case 3
@@ -195,9 +190,7 @@ try
                 tempEnd_time = datenum(handles.WorkEndInput.String);
                 
                 [handles, logstr] = AP_data.unmarkActivpal(handles, tempStart_time, tempEnd_time);
-                guidata(hObject, handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
- 
+                guidata(hObject, handles); 
                 
                 
             case 4
@@ -217,47 +210,52 @@ try
                 [handles, logstr] = sleep_algorithm.insertSleep(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-   
-                
             case 6
-                
-                [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                handles.ActionTimeFrame = ActionTimeFrame; 
-                handles.WakeSleep = WakeSleep; 
-                guidata(hObject, handles);
-                
-                L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
-                L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
-                L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
-                L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
-                L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
-                L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
-                L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
-                
-                formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
-                fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
-                
-                msg = cell(4,1);
-                msg{1} = sprintf(L1);
-                msg{2} = sprintf(L2);
-                msg{3} = sprintf(L3);
-                msg{4} = sprintf(L4);
-                msg{5} = sprintf(L5);
-                msg{6} = sprintf(L6);
-                msg{7} = sprintf(L7);
-                
-      
-                
+                if datenum(handles.wake_insert.String) < datenum(handles.sleep_insert.String) &&  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String)
+                    timeStamp = {handles.wake_insert.String, handles.sleep_insert.String, handles.WorkStartInput.String, handles.WorkEndInput.String};
+                    [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles);
+                    
+                    if isfield(handles, 'SavedCalculatedData') == 1
+                        handles.SavedCalculatedData = vertcat(handles.SavedCalculatedData(:,:), {timeStamp, ActionTimeFrame, WakeSleep});
+                    else
+                        handles.SavedCalculatedData = {timeStamp, ActionTimeFrame, WakeSleep};
+                    end
+                    
+                    guidata(hObject, handles);
+                    
+                    %                     L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
+                    %                     L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
+                    %                     L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
+                    %                     L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
+                    %                     L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
+                    %                     L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
+                    %                     L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
+                    %
+                    %                     formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
+                    %                     fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
+                    %
+                    %                     msg = cell(4,1);
+                    %                     msg{1} = sprintf(L1);
+                    %                     msg{2} = sprintf(L2);
+                    %                     msg{3} = sprintf(L3);
+                    %                     msg{4} = sprintf(L4);
+                    %                     msg{5} = sprintf(L5);
+                    %                     msg{6} = sprintf(L6);
+                    %                     msg{7} = sprintf(L7);
+
+                else 
+                    close(f)
+                    return
+                end 
                 
             case 7
                 
                 % Undo Inserted Activpal Data from Working Memory
                 handles.activpal_data.memory = handles.activpal_data.working;
                 guidata(hObject, handles);
-                logMessage.GenerateLogMessage(handles.log_box, 'Undo Previous Action')
-
+                
+                logstr = 'Undo Previous Action'; 
+                
                 
             otherwise
                 
@@ -265,18 +263,20 @@ try
         end
         
         close(f)
-              logMessage.GenerateLogMessage(handles.log_box, logstr)
-                start_date = GUIobj.find_list_StartDate(handles);
-                logstr = AP_data.gen_subplot_coordinates(handles, start_date);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
-                
-                logstr = AP_data.fullplot(handles);
-                logMessage.GenerateLogMessage(handles.log_box, logstr)
+        logMessage.GenerateLogMessage(handles.log_box, logstr)
+        
+        start_date = GUIobj.find_list_StartDate(handles);
+        logstr = AP_data.gen_subplot_coordinates(handles, start_date);
+        logMessage.GenerateLogMessage(handles.log_box, logstr)
+        
+        logstr = AP_data.fullplot(handles);
+        logMessage.GenerateLogMessage(handles.log_box, logstr)
         
     end
     
 catch ME
     errordlg(ME.message, 'Error Alert');
+    close(f) 
 end
 
 
@@ -301,8 +301,12 @@ function log_box_Callback(hObject, eventdata, handles)
 function FileIO_Callback(hObject, eventdata, handles)
 function Save_Activpal_Selection_Callback(hObject, eventdata, handles)
 try
-    AP_data.Export(handles.activpal_data.memory, handles.AP_file_name.String)
-    logMessage.GenerateLogMessage(handles.log_box, 'New Activpal CSV Saved') 
+    
+    AP_data.ExportOutcomes(handles)
+    logMessage.GenerateLogMessage(handles.log_box, 'Outcomes Saved') 
+
+    %AP_data.Export(handles.activpal_data.memory, handles.AP_file_name.String)
+    % logMessage.GenerateLogMessage(handles.log_box, 'New Activpal CSV Saved') 
 
 catch ME
     errordlg(ME.message, 'Error Alert');
@@ -389,7 +393,6 @@ function wake_insert_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 function sleep_insert_Callback(hObject, eventdata, handles)
 
 
@@ -424,3 +427,68 @@ set(hObject, 'String',  GUIobj.initialization_text);
 
 
 % --------------------------------------------------------------------
+function wake_button_Callback(hObject, eventdata, handles)
+cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+'SelectionType', 1, ...  
+'DestinationUI', handles.wake_insert);
+
+uiwait(cal) 
+
+handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+
+Guiobj = GUIobj; 
+clockobj.generateClockFcn(Guiobj, handles);
+uiwait(handles.F)
+    
+time = handles.figure1.UserData;
+date = datevec(handles.wake_insert.String);
+datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+handles.wake_insert.String = datestr(DateT); 
+function sleep_button_Callback(hObject, eventdata, handles)
+    cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.sleep_insert);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.sleep_insert.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.sleep_insert.String = datestr(DateT); 
+function action_start_button_Callback(hObject, eventdata, handles)
+
+ cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.WorkStartInput);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.WorkStartInput.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.WorkStartInput.String = datestr(DateT); 
+function action_end_button_Callback(hObject, eventdata, handles)
+
+ cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.WorkEndInput);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.WorkEndInput.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.WorkEndInput.String = datestr(DateT); 
+
+
+

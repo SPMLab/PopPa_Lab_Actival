@@ -1,5 +1,4 @@
-classdef GUIobj 
-    
+classdef GUIobj
     properties (Constant)
         initialization_text = "Journal Action";
         
@@ -10,15 +9,19 @@ classdef GUIobj
             '5) INSERT SLEEP',...
             '6) CALCULATE',...
             '7) UNDO EVENT INSERT'};
-
+       
     end
+    
+    properties 
+        clockobj
+    end 
 
     methods (Static)
         function enableActionPanel(handles)
-            handles.WorkStartInput.Enable = 'on';
-            handles.WorkEndInput.Enable = 'on';
-            handles.wake_insert.Enable = 'on';
-            handles.sleep_insert.Enable = 'on';
+            handles.WorkStartInput.Enable = 'off';
+            handles.WorkEndInput.Enable = 'off';
+            handles.wake_insert.Enable = 'off';
+            handles.sleep_insert.Enable = 'off';
         end
         
         function enableJournalTable(handles)
@@ -43,13 +46,30 @@ classdef GUIobj
             
         end 
         
+        
+        
+        function time_button_buttondownFcn_callback(src, event) 
+            hr = src.Parent.Children(end).Value-1;
+            min = src.Parent.Children(end-1).Value-1;
+            sec = src.Parent.Children(end-2).Value-1;
+            ms = src.Parent.Children(end-3).Value-1;
+
+            TIME = [hr, min, sec, ms*10];
+            src.Parent.Parent.Children(2).UserData = TIME; 
+            close(src.Parent) 
+            
+        end 
+        
     end
-    
+
     methods
         function setJournalList(varargin)
             h = varargin{2};
             set(h.journal_command, 'Enable', 'on', 'String',  varargin{1}.action_list(1:end));
         end
+        
+        
+        
         
 %         function obj = GUIobj(val1, val2, val3)
 %             obj.MetThreshold = val1;
