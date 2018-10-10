@@ -42,7 +42,7 @@ classdef sleep_algorithm
             end
             
             activpal_data_matrix(k,end) = 2; 
-            
+            handles.wake_insert.Value = 1; 
             logstr = horzcat('Wake Time Marked at ', datestr(activpal_data_datenum(k)),  ' as ', action);
             handles.activpal_data.memory = {datetime(datestr(activpal_data_datenum)), activpal_data_matrix};
         end
@@ -66,7 +66,7 @@ classdef sleep_algorithm
             end
             
             activpal_data_matrix(k,end) = 3;
-            
+            handles.sleep_insert.Value = 1; 
             logstr = horzcat('Sleep Time Marked at ', datestr(activpal_data_datenum(k)),  ' as ', action);
             handles.activpal_data.memory = {datetime(datestr(activpal_data_datenum)), activpal_data_matrix};
         end
