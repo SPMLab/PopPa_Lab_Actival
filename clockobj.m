@@ -3,7 +3,7 @@ classdef clockobj
         
         function generateCalendar(handles, selection)
             x = {'handles.wake_insert'; 'handles.sleep_insert'; 'handles.WorkStartInput'; 'handles.WorkEndInput'};
-            [cal] = feval('uicalendar', 'Weekend', [1 0 0 0 0 0 1], 'SelectionType', 1, 'DestinationUI', eval(x{selection}));
+            [cal] = feval('uicalendar','InitDate', handles.ID_list.String(handles.ID_list.Value,:), 'Weekend', [1 0 0 0 0 0 1], 'SelectionType', 1, 'DestinationUI', eval(x{selection}));
             uiwait(cal)
         end
         

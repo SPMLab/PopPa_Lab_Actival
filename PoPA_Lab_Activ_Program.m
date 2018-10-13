@@ -32,7 +32,9 @@ varargout{1} = handles.output;
 
 %%% ACTIVPAL ANALYSIS PROGRAM INITIALIZATION
 function PoPA_Lab_Activ_Program_OpeningFcn(hObject, eventdata, handles, varargin)
-
+    
+    clc
+    
     handles.output = hObject; guidata(hObject, handles);
     % Run Journal Table Header Method
     % Initialize Log Event Dialog Box
@@ -222,10 +224,27 @@ try
                 guidata(hObject, handles);
                 
             case 6
-                regexp(handles.WorkStartInput.String, '\d2.(?<month>\w+)')
-                if datenum(handles.wake_insert.String) < datenum(handles.sleep_insert.String) ||  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String)
-                    timeStamp = {handles.wake_insert.String, handles.sleep_insert.String, handles.WorkStartInput.String, handles.WorkEndInput.String};
-                    [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles);
+                
+                if ~isempty(regexp(handles.WorkStartInput.String, '(\d+)-(\w+)-(\d+)', 'once')) && ~isempty(regexp(handles.WorkEndInput.String, '(\d+)-(\w+)-(\d+)', 'once'))...
+                        &&  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String)
+                    
+                   % If Both Action Times are Valid
+                    
+                    if ~isempty(regexp(handles.wake_insert.String, '(\d+)-(\w+)-(\d+)', 'once')) && ~isempty(regexp(handles.sleep_insert.String, '(\d+)-(\w+)-(\d+)', 'once'))...
+                            && datenum(handles.wake_insert.String) < datenum(handles.sleep_insert.String) 
+                        % If Both Sleep and Wake Time are Valid
+                        % Execute This Block When Sleep/Wake and Action
+                        % Time Frames are both Valid
+                        
+                        timeStamp = {handles.wake_insert.String, handles.sleep_insert.String, handles.WorkStartInput.String, handles.WorkEndInput.String};
+                        [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles, 'full');
+                        
+                    else % Execute Only When Action Time Frame is Valid
+                        
+                        timeStamp = {handles.WorkStartInput.String, handles.WorkEndInput.String};
+                        [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles, 'action');
+                        
+                    end
                     
                     if isfield(handles, 'SavedCalculatedData') == 1
                         handles.SavedCalculatedData = vertcat(handles.SavedCalculatedData(:,:), {timeStamp, ActionTimeFrame, WakeSleep});
@@ -237,10 +256,10 @@ try
                     
                 else
                     close(f)
-                    logMessage.GenerateLogMessage(handles.log_box, 'Error in Calculating Outcomes')
+                    logMessage.GenerateLogMessage(handles.log_box, 'Time Frame Values Invalid')
                     return
                 end
-                
+
             case 7
                 
                 % Undo Inserted Activpal Data from Working Memory

@@ -142,28 +142,29 @@ classdef AP_data
         end
         
         % CALCULATE OUTCOME VARIABLES
-        function [ActionTimeFrame, WakeSleep, logstr] = calculate_activpalData(handles)
+        function [ActionTimeFrame, WakeSleep, logstr] = calculate_activpalData(handles, Method)
+            
             try
-             
-                tempWake_time = datenum(datetime(handles.wake_insert.String));
-                tempSleep_time = datenum(datetime(handles.sleep_insert.String));
-                tempStart_time = datenum(datetime(handles.WorkStartInput.String));
-                tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
-                
                 ActionTimeFrame = struct;
                 WakeSleep = struct;
+                activpal_data = handles.activpal_data.memory;
+                datenumbers = datenum(activpal_data{1});
                 
-                if (tempSleep_time > tempWake_time) && (tempEnd_time > tempStart_time)
-                    activpal_data = handles.activpal_data.memory;
-                    datenumbers = datenum(activpal_data{1});
+                if strcmp(Method, 'full')
                     
+                    tempWake_time = datenum(datetime(handles.wake_insert.String));
+                    tempSleep_time = datenum(datetime(handles.sleep_insert.String));
+                    tempStart_time = datenum(datetime(handles.WorkStartInput.String));
+                    tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
+                    
+
                     Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
                     SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers <= tempSleep_time));
                     SleepkWake_time_frame_index = SleepkWake_time_frame_index-1;
                     
                     % time_frame_dates = activpal_data{1}(time_frame_index);
                     Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
-                    SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);  
+                    SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);
                     
                     % Find Unmarked Within Action Timeframe
                     Unmarked_ATF = Action_time_frame_data(Action_time_frame_data(:,end) == 0, :);
@@ -180,10 +181,10 @@ classdef AP_data
                     for i = 0:2
                         temp_data_activity1 = Action_time_frame_data(Action_time_frame_data_activity == i, :);
                         temp_data_activity2 = SleepWake_time_frame_data(SleepWake_time_frame_data(:,3) == i, :);
-
+                        
                         total_time(n) = sum(temp_data_activity1(:,2))./60;
                         total_timeSW(n) = sum(temp_data_activity2(:,2))./60;
-
+                        
                         n = n + 1;
                     end
                     
@@ -194,50 +195,50 @@ classdef AP_data
                     Time_MET = cellfun(@sum, MET_count)./60;
                     
                     time_frame_data_sit_transitions = Action_time_frame_data;
-                    sed_breaks = time_frame_data_sit_transitions(time_frame_data_sit_transitions(:,3) == 2 | time_frame_data_sit_transitions(:,3) == 1, 2); 
-                    ActionTimeFrame.Sit_to_Upright_Transitions =  numel(sed_breaks((sed_breaks >= 60))); 
-                   
+                    sed_breaks = time_frame_data_sit_transitions(time_frame_data_sit_transitions(:,3) == 2 | time_frame_data_sit_transitions(:,3) == 1, 2);
+                    ActionTimeFrame.Sit_to_Upright_Transitions =  numel(sed_breaks((sed_breaks >= 60)));
                     
-                    TotalValidWearMin = sum(Marked_ATF(:,2))./60; % Total valid minutes 
+                    
+                    TotalValidWearMin = sum(Marked_ATF(:,2))./60; % Total valid minutes
                     TotalInvalidWearMin = sum(Unmarked_ATF(:,2))./60; % Total invalid minutes
                     ValidWearPercentage = TotalValidWearMin./(TotalInvalidWearMin + TotalValidWearMin); % Percentage of Valid re: Invalid
                     TotalWakeMin = sum(SleepWake_time_frame_data(:,2))./60; % Total wake minutes
                     PercentDayValidWear = TotalValidWearMin./TotalWakeMin; % Percent of day that was valid wear
-             
                     
-                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step 
-                   
+                    
+                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step
+                    
                     
                     PercentDay = total_timeSW./sum(total_timeSW); % of Day in Sed, Stand, Step
                     
                     % Total mintutes spent in extended sedentary bouts (?30
-                    % minutes) in Action Timeframe 
+                    % minutes) in Action Timeframe
                     prolonged_sitting_action = sum(Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60;
-                    num_prolonged_sed = numel((Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60); 
+                    num_prolonged_sed = numel((Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60);
                     % Total mintutes spent in extended sedentary bouts (?30
-                    % minutes) in Action Timeframe 
+                    % minutes) in Action Timeframe
                     
                     % Total mintutes spent in extended sedentary bouts (?30
                     % minutes) for Whole Wake Period
                     prolonged_sitting_day = sum(SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800), 2))./60;
-                    num_prolonged_sed_day = numel((SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800),2))./60); 
+                    num_prolonged_sed_day = numel((SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800),2))./60);
                     
                     % Cumulative # Step Count in Action
                     Step_count_action = Action_time_frame_data(end,4) - Action_time_frame_data(1,4);
                     % Cumulative # Step Count in Day
                     Step_count_day = SleepWake_time_frame_data(end,4) - SleepWake_time_frame_data(1,4);
                     
-                    ActionTimeFrame.Total_Time = total_time; 
+                    ActionTimeFrame.Total_Time = total_time;
                     ActionTimeFrame.Time_In_MET = Time_MET;
                     ActionTimeFrame.Total_Valid_Wear_Min = TotalValidWearMin;
                     ActionTimeFrame.Total_Invalid_Wear_Min = TotalInvalidWearMin;
                     ActionTimeFrame.Valid_Wear_Percentage = ValidWearPercentage;
-                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent; 
-                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action; 
-                    ActionTimeFrame.Step_Count = Step_count_action; 
-                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed; 
+                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent;
+                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action;
+                    ActionTimeFrame.Step_Count = Step_count_action;
+                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed;
                     
-                    WakeSleep.Total_Time = total_timeSW; 
+                    WakeSleep.Total_Time = total_timeSW;
                     WakeSleep.Total_Wake_Min = TotalWakeMin;
                     WakeSleep.Percent_Day_of_Valid_Wear = PercentDayValidWear;
                     WakeSleep.Percent_Of_Actions_During_WakeSleep_Time_Frame = PercentDay;
@@ -259,13 +260,15 @@ classdef AP_data
                     %                 msg{3} = sprintf(L3);
                     %                 msg{4} = sprintf(L4);
                     %                 msb = msgbox(msg);
-                   
+                    
                     logstr = 'Calculated';
                     
-                else
-                    ActionTimeFrame = struct;
-                    WakeSleep = struct;
-                    logstr = 'Non-Chronological Timeframe Pairs, Check Inputs';
+                elseif strcmp(Method, 'action')
+                    
+                    tempStart_time = datenum(datetime(handles.WorkStartInput.String));
+                    tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
+                    
+                    
                 end
                 
             catch
