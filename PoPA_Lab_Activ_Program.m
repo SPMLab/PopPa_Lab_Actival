@@ -4,6 +4,8 @@
 % Associated Objs 
     % journal_data.m
     % AP_data.m
+    % GUIobj.m
+    % clockobj.m
     % logMessage.m
     
 function varargout = PoPA_Lab_Activ_Program(varargin)
@@ -175,23 +177,35 @@ try
                 [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
                 
-                
             case 2
+                % Save Current Activpal State for Undo
+                handles.activpal_data.working = handles.activpal_data.memory;
+                guidata(hObject, handles);
                 
-                tempStart_time = datenum(handles.WorkStartInput.String);
-                tempEnd_time = datenum(handles.WorkEndInput.String);
-                
-                [handles, logstr] = AP_data.markActivpal(handles, tempStart_time, tempEnd_time);
-                guidata(hObject, handles); 
-                
+                if  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String) == 1
+                    tempStart_time = datenum(handles.WorkStartInput.String);
+                    tempEnd_time = datenum(handles.WorkEndInput.String);
+                    
+                    [handles, logstr] = AP_data.markActivpal(handles, tempStart_time, tempEnd_time);
+                    guidata(hObject, handles);
+                else
+                    logstr = 'Error in Executing Action (Check input times)';
+                end
                 
             case 3
-                tempStart_time = datenum(handles.WorkStartInput.String);
-                tempEnd_time = datenum(handles.WorkEndInput.String);
+                % Save Current Activpal State for Undo
+                handles.activpal_data.working = handles.activpal_data.memory;
+                guidata(hObject, handles);
                 
-                [handles, logstr] = AP_data.unmarkActivpal(handles, tempStart_time, tempEnd_time);
-                guidata(hObject, handles); 
-                
+                if  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String) == 1
+                    tempStart_time = datenum(handles.WorkStartInput.String);
+                    tempEnd_time = datenum(handles.WorkEndInput.String);
+                    
+                    [handles, logstr] = AP_data.unmarkActivpal(handles, tempStart_time, tempEnd_time);
+                    guidata(hObject, handles);
+                else
+                    logstr = 'Error in Executing Action (Check input times)';
+                end
                 
             case 4
                 handles.activpal_data.working = handles.activpal_data.memory;
@@ -199,9 +213,6 @@ try
                 
                 [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
                 guidata(hObject, handles);
-                
-        
-                
                 
             case 5
                 handles.activpal_data.working = handles.activpal_data.memory;
@@ -211,7 +222,8 @@ try
                 guidata(hObject, handles);
                 
             case 6
-                if datenum(handles.wake_insert.String) < datenum(handles.sleep_insert.String) &&  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String)
+                regexp(handles.WorkStartInput.String, '\d2.(?<month>\w+)')
+                if datenum(handles.wake_insert.String) < datenum(handles.sleep_insert.String) ||  datenum(handles.WorkStartInput.String) < datenum(handles.WorkEndInput.String)
                     timeStamp = {handles.wake_insert.String, handles.sleep_insert.String, handles.WorkStartInput.String, handles.WorkEndInput.String};
                     [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles);
                     
@@ -223,30 +235,11 @@ try
                     
                     guidata(hObject, handles);
                     
-                    %                     L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
-                    %                     L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
-                    %                     L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
-                    %                     L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
-                    %                     L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
-                    %                     L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
-                    %                     L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
-                    %
-                    %                     formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
-                    %                     fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
-                    %
-                    %                     msg = cell(4,1);
-                    %                     msg{1} = sprintf(L1);
-                    %                     msg{2} = sprintf(L2);
-                    %                     msg{3} = sprintf(L3);
-                    %                     msg{4} = sprintf(L4);
-                    %                     msg{5} = sprintf(L5);
-                    %                     msg{6} = sprintf(L6);
-                    %                     msg{7} = sprintf(L7);
-
-                else 
+                else
                     close(f)
+                    logMessage.GenerateLogMessage(handles.log_box, 'Error in Calculating Outcomes')
                     return
-                end 
+                end
                 
             case 7
                 
@@ -254,11 +247,11 @@ try
                 handles.activpal_data.memory = handles.activpal_data.working;
                 guidata(hObject, handles);
                 
-                logstr = 'Undo Previous Action'; 
-                
+                logstr = 'Undo Previous Action';
                 
             otherwise
-                
+                close(f)
+                logMessage.GenerateLogMessage(handles.log_box, 'No Action Occured')
                 return
         end
         
@@ -276,7 +269,7 @@ try
     
 catch ME
     errordlg(ME.message, 'Error Alert');
-    close(f) 
+    close(f)
 end
 
 
@@ -383,50 +376,7 @@ handles = sleep_algorithm.Sleep_AlgoSelection(handles, 3);
 guidata(hObject, handles); 
 % --------------------------------------------------------------------
 
-
-
-function wake_insert_Callback(hObject, eventdata, handles)
-
-% --- Executes during object creation, after setting all properties.
-function wake_insert_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function sleep_insert_Callback(hObject, eventdata, handles)
-
-
-
-% Miscellaneous
-% --------------------------------------------------------------------
-function journal_table_ButtonDownFcn(hObject, eventdata, handles)
-function WorkStartInput_Callback(hObject, eventdata, handles)
-function WorkStartInput_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function WorkEndInput_Callback(hObject, eventdata, handles)
-function WorkEndInput_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function ID_list_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function sleep_insert_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-% --- Executes during object creation, after setting all properties.
-function journal_command_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject, 'String',  GUIobj.initialization_text); 
-
-
-% --------------------------------------------------------------------
+% UI Calendar and UI Timeselector
 function wake_button_Callback(hObject, eventdata, handles)
 cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
 'SelectionType', 1, ...  
@@ -489,6 +439,73 @@ function action_end_button_Callback(hObject, eventdata, handles)
     datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
     DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
     handles.WorkEndInput.String = datestr(DateT); 
+
+
+function wake_insert_Callback(hObject, eventdata, handles)
+
+% --- Executes during object creation, after setting all properties.
+function wake_insert_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function sleep_insert_Callback(hObject, eventdata, handles)
+
+
+
+% Miscellaneous
+% --------------------------------------------------------------------
+function journal_table_ButtonDownFcn(hObject, eventdata, handles)
+function WorkStartInput_Callback(hObject, eventdata, handles)
+function WorkStartInput_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function WorkEndInput_Callback(hObject, eventdata, handles)
+function WorkEndInput_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function ID_list_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function sleep_insert_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function journal_command_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+set(hObject, 'String',  GUIobj.initialization_text); 
+
+
+
+
+           %                     L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
+                    %                     L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
+                    %                     L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
+                    %                     L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
+                    %                     L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
+                    %                     L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
+                    %                     L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
+                    %
+                    %                     formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
+                    %                     fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
+                    %
+                    %                     msg = cell(4,1);
+                    %                     msg{1} = sprintf(L1);
+                    %                     msg{2} = sprintf(L2);
+                    %                     msg{3} = sprintf(L3);
+                    %                     msg{4} = sprintf(L4);
+                    %                     msg{5} = sprintf(L5);
+                    %                     msg{6} = sprintf(L6);
+                    %                     msg{7} = sprintf(L7);
+
+
+
 
 
 
