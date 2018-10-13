@@ -376,54 +376,75 @@ handles = sleep_algorithm.Sleep_AlgoSelection(handles, 3);
 guidata(hObject, handles); 
 % --------------------------------------------------------------------
 
-% --------------------------------------------------------------------
-% --------ACTION PANEL TIME FRAME SELECTION BUTTON CALLBACKS----------
-% --------------------------------------------------------------------
+% UI Calendar and UI Timeselector
 function wake_button_Callback(hObject, eventdata, handles)
 
-clockobj.generateCalendar(handles, 1)
+clockobj.generateCalendar(handles) 
+
+cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+'SelectionType', 1, ...  
+'DestinationUI', handles.wake_insert);
+
+uiwait(cal) 
+
 handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
 
-Guiobj = GUIobj;
+Guiobj = GUIobj; 
 clockobj.generateClockFcn(Guiobj, handles);
 uiwait(handles.F)
+    
+time = handles.figure1.UserData;
+date = datevec(handles.wake_insert.String);
+datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+handles.wake_insert.String = datestr(DateT); 
 
-clockobj.generateTimeString(handles, 1);
 function sleep_button_Callback(hObject, eventdata, handles)
-clockobj.generateCalendar(handles, 2)
-handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
-
-Guiobj = GUIobj;
-clockobj.generateClockFcn(Guiobj, handles);
-uiwait(handles.F)
-
-clockobj.generateTimeString(handles, 2); 
+    cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.sleep_insert);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.sleep_insert.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.sleep_insert.String = datestr(DateT); 
+    
 function action_start_button_Callback(hObject, eventdata, handles)
-clockobj.generateCalendar(handles, 3)
-handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
 
-Guiobj = GUIobj;
-clockobj.generateClockFcn(Guiobj, handles);
-uiwait(handles.F)
-
-clockobj.generateTimeString(handles, 3); 
+ cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.WorkStartInput);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.WorkStartInput.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.WorkStartInput.String = datestr(DateT); 
+    
 function action_end_button_Callback(hObject, eventdata, handles)
 
-clockobj.generateCalendar(handles, 4)
-handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
-
-Guiobj = GUIobj;
-clockobj.generateClockFcn(Guiobj, handles);
-uiwait(handles.F)
-
-clockobj.generateTimeString(handles, 4); 
-% --------------------------------------------------------------------
-
-
-
-
-
-
+ cal = uicalendar('Weekend', [1 0 0 0 0 0 1], ...  
+    'SelectionType', 1, ...  
+    'DestinationUI', handles.WorkEndInput);
+    uiwait(cal) 
+    handles.F = figure('WindowStyle', 'normal', 'Name', 'Select Time', 'menubar','none', 'Resize', 'off', 'InnerPosition', [300 300 375 80], 'Units', 'pixels');
+    Guiobj = GUIobj; 
+    clockobj.generateClockFcn(Guiobj, handles);
+    uiwait(handles.F)
+    time = handles.figure1.UserData;
+    date = datevec(handles.WorkEndInput.String);
+    datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+    DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+    handles.WorkEndInput.String = datestr(DateT); 
 
 
 function wake_insert_Callback(hObject, eventdata, handles)
