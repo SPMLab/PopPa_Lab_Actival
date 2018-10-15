@@ -88,6 +88,13 @@ classdef sleep_algorithm
             end
         end
         
+        function val = Check_Sleep_Algo(handles)
+  
+            checks = {handles.wakeSleep_method_closest.Checked; handles.wakeSleep_method_Manual.Checked; handles.wakeSleep_method_DeM.Checked};
+            val = find(cellfun(@(x)strcmp(x, 'on'), checks, 'UniformOutput', true)); 
+            
+        end 
+        
         function prolongedAlgo(varargin)
         end
         
