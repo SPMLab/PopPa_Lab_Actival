@@ -1,6 +1,22 @@
 classdef clockobj
     methods (Static)
         
+        function generateCalendar(handles, selection)
+            x = {'handles.wake_insert'; 'handles.sleep_insert'; 'handles.WorkStartInput'; 'handles.WorkEndInput'};
+            [cal] = feval('uicalendar','InitDate', handles.ID_list.String(handles.ID_list.Value,:), 'Weekend', [1 0 0 0 0 0 1], 'SelectionType', 1, 'DestinationUI', eval(x{selection}));
+            uiwait(cal)
+        end
+        
+        function generateTimeString(handles, selection)
+            x = {'handles.wake_insert.String'; 'handles.sleep_insert.String'; 'handles.WorkStartInput.String'; 'handles.WorkEndInput.String'};
+
+            time = handles.figure1.UserData;
+            date = datevec(eval(x{selection}));
+            datevector = horzcat(date(1:3),time(1:2), time(3) + time(4)/1000);
+            DateT = datetime(datevector, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+            eval(horzcat(x{selection}, ' = datestr(DateT);')); 
+        end
+        
         function handles = generateClockFcn(GUIobj, handles)
             
             HourVec = num2cell(0:23);

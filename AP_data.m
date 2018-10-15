@@ -15,7 +15,7 @@ classdef AP_data
         % IMPORTING ACTIVPAL CSV FILE
         function [handles, start_date, logstr] = import_activpal_func(handles)
             [f1,p1] = uigetfile('*.csv');
-            
+            handles.importedfile_name = f1; 
             % Import Data from Activpal File
             temp_data = csvread(horzcat(p1,f1), 1, 0);
             
@@ -142,108 +142,147 @@ classdef AP_data
         end
         
         % CALCULATE OUTCOME VARIABLES
-        function [ActionTimeFrame, WakeSleep, logstr] = calculate_activpalData(handles)
+        function [ActionTimeFrame, WakeSleep, logstr] = calculate_activpalData(handles, Method)
+            
             try
-             
-                tempWake_time = datenum(datetime(handles.wake_insert.String));
-                tempSleep_time = datenum(datetime(handles.sleep_insert.String));
-                tempStart_time = datenum(datetime(handles.WorkStartInput.String));
-                tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
-                
                 ActionTimeFrame = struct;
                 WakeSleep = struct;
                 
-                if (tempSleep_time > tempWake_time) && (tempEnd_time > tempStart_time)
-                    activpal_data = handles.activpal_data.memory;
-                    datenumbers = datenum(activpal_data{1});
+                ActionTimeFrame.Total_Time = [NaN, NaN, NaN];
+                ActionTimeFrame.Time_In_MET = [NaN, NaN, NaN];
+                ActionTimeFrame.Total_Valid_Wear_Min = NaN;
+                ActionTimeFrame.Total_Invalid_Wear_Min = NaN;
+                ActionTimeFrame.Valid_Wear_Percentage = NaN;
+                ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = [NaN, NaN, NaN];
+                ActionTimeFrame.Total_Prolonged_Sed_Min = NaN;
+                ActionTimeFrame.Step_Count = NaN;
+                ActionTimeFrame.Prolonged_Sed_Count = NaN;
+                ActionTimeFrame.Percent_in_Prolonged_Sed = NaN; 
+                ActionTimeFrame.Sit_to_Upright_Transitions =  NaN;
+                
+                WakeSleep.Total_Time =  [NaN, NaN, NaN];
+                WakeSleep.Time_In_MET = [NaN, NaN, NaN];
+                WakeSleep.Total_Wake_Min = NaN;
+                WakeSleep.Percent_Day_of_Valid_Wear = NaN;
+                WakeSleep.Percent_Of_Actions_During_WakeSleep_Time_Frame =  [NaN, NaN, NaN];
+                WakeSleep.Total_Prolonged_Sed_Min = NaN;
+                WakeSleep.Step_Count = NaN;
+                WakeSleep.Prolonged_Sed_Count = NaN;
+                WakeSleep.Percent_in_Prolonged_Sed = NaN; 
+
+                activpal_data = handles.activpal_data.memory;
+                datenumbers = datenum(activpal_data{1});
+                
+                if strcmp(Method, 'full')
+                    
+                    tempWake_time = datenum(datetime(handles.wake_insert.String));
+                    tempSleep_time = datenum(datetime(handles.sleep_insert.String));
+                    tempStart_time = datenum(datetime(handles.WorkStartInput.String));
+                    tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
                     
                     Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
-                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers <= tempSleep_time));
-                    SleepkWake_time_frame_index = SleepkWake_time_frame_index-1;
+                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers < tempSleep_time));
                     
                     % time_frame_dates = activpal_data{1}(time_frame_index);
                     Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
-                    SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);  
-                    
-                    % Find Unmarked Within Action Timeframe
-                    Unmarked_ATF = Action_time_frame_data(Action_time_frame_data(:,end) == 0, :);
-                    % Find Marked Within Action Timeframe
-                    Marked_ATF = Action_time_frame_data(Action_time_frame_data(:,end) == 1, :);
-                    
-                    Action_time_frame_data_activity = Action_time_frame_data(:,3);
-                    Action_time_frame_data_MET = Action_time_frame_data(:,5);
-                    Acton_time_frame_data_interval = Action_time_frame_data(:,2);
-                    
+                    SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);
+                                 
+                    %%% CALCULATE TOTAL TIME OUTCOME 
                     n = 1;
                     total_time = zeros(1,3);
                     total_timeSW = zeros(1,3);
                     for i = 0:2
-                        temp_data_activity1 = Action_time_frame_data(Action_time_frame_data_activity == i, :);
-                        temp_data_activity2 = SleepWake_time_frame_data(SleepWake_time_frame_data(:,3) == i, :);
-
-                        total_time(n) = sum(temp_data_activity1(:,2))./60;
-                        total_timeSW(n) = sum(temp_data_activity2(:,2))./60;
-
+                        total_time(n) = sum(Action_time_frame_data(Action_time_frame_data(:,3) == i, 2))./60;
+                        total_timeSW(n) = sum(SleepWake_time_frame_data(SleepWake_time_frame_data(:,3) == i, 2))./60;                        
                         n = n + 1;
                     end
                     
-                    MET_count{1} = Action_time_frame_data(Action_time_frame_data_MET < 3.0, 2);
-                    MET_count{2} = Action_time_frame_data((Action_time_frame_data_MET >= 3.0) & (Action_time_frame_data_MET <= 6.0), 2);
-                    MET_count{3} = Action_time_frame_data(Action_time_frame_data_MET > 6.0, 2);
+                    %%% CALCULATE TOTAL TIME IN MET OUTCOME 
+                    Time_MET(1) = sum(Action_time_frame_data(Action_time_frame_data(:,5) < handles.ControlParameters{1}(1), 2))./60;
+                    Time_MET(2) = sum(Action_time_frame_data((Action_time_frame_data(:,5) >= handles.ControlParameters{1}(1))...
+                        & (Action_time_frame_data(:,5) <= handles.ControlParameters{1}(2)), 2))./60;
+                    Time_MET(3) = sum(Action_time_frame_data(Action_time_frame_data(:,5) > handles.ControlParameters{1}(2), 2))./60;
                     
-                    Time_MET = cellfun(@sum, MET_count)./60;
+                    %%% CALCULATE SIT STAND TRANSITIONS 
+                    SedentaryIndexs = find((Action_time_frame_data(:,3) == 0)); 
                     
-                    time_frame_data_sit_transitions = Action_time_frame_data;
-                    sed_breaks = time_frame_data_sit_transitions(time_frame_data_sit_transitions(:,3) == 2 | time_frame_data_sit_transitions(:,3) == 1, 2); 
-                    ActionTimeFrame.Sit_to_Upright_Transitions =  numel(sed_breaks((sed_breaks >= 60))); 
-                   
+                    % CHECK THE TIME FRAMES IN BETWEEN SEDENTARY SECTIONS
+                    % IF THE SECTION IS LONGER THAN OR EQUAL TO 60s THEN IT
+                    % COUNTS AS A UPRIGHT TRANSITION ELSE NOT. 
+                    transitions = 0; 
+                    for i = 1:length(SedentaryIndexs)-1
+                        if sum(Action_time_frame_data(SedentaryIndexs(i)+1:SedentaryIndexs(i+1)-1, 2)) >= 60
+                            transitions = transitions + 1; 
+                        end
+                    end 
                     
-                    TotalValidWearMin = sum(Marked_ATF(:,2))./60; % Total valid minutes 
-                    TotalInvalidWearMin = sum(Unmarked_ATF(:,2))./60; % Total invalid minutes
+                    TotalValidWearMin = sum(Action_time_frame_data(:,2))./60;
+                    TotalInvalidWearMin = 0;
+                    if any(activpal_data{2}(Action_time_frame_index,end) == 1) == 1
+                        % Find Unmarked Within Action Timeframe
+                        TotalInvalidWearMin = sum(Action_time_frame_data(Action_time_frame_data(:,end) == 0, 2))./60;
+                        % Find Marked Within Action Timeframe
+                        TotalValidWearMin = sum(Action_time_frame_data(Action_time_frame_data(:,end) == 1, 2))./60;
+                    end
+                                        
                     ValidWearPercentage = TotalValidWearMin./(TotalInvalidWearMin + TotalValidWearMin); % Percentage of Valid re: Invalid
-                    TotalWakeMin = sum(SleepWake_time_frame_data(:,2))./60; % Total wake minutes
-                    PercentDayValidWear = TotalValidWearMin./TotalWakeMin; % Percent of day that was valid wear
-             
-                    
-                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step 
-                   
-                    
-                    PercentDay = total_timeSW./sum(total_timeSW); % of Day in Sed, Stand, Step
+                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step
                     
                     % Total mintutes spent in extended sedentary bouts (?30
-                    % minutes) in Action Timeframe 
-                    prolonged_sitting_action = sum(Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60;
-                    num_prolonged_sed = numel((Action_time_frame_data((Action_time_frame_data_activity == 0) & (Acton_time_frame_data_interval >= 1800),2))./60); 
-                    % Total mintutes spent in extended sedentary bouts (?30
-                    % minutes) in Action Timeframe 
-                    
-                    % Total mintutes spent in extended sedentary bouts (?30
-                    % minutes) for Whole Wake Period
-                    prolonged_sitting_day = sum(SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800), 2))./60;
-                    num_prolonged_sed_day = numel((SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800),2))./60); 
+                    % minutes) in Action Timeframe
+                    prolonged_sitting_action = sum(Action_time_frame_data((Action_time_frame_data(:,3) == 0) & (Action_time_frame_data(:,2) >= 1800),2))./60;
+                    num_prolonged_sed = numel((Action_time_frame_data((Action_time_frame_data(:,3) == 0) & (Action_time_frame_data(:,2) >= 1800),2))./60);
+                    percent_prolonged_sed_action = prolonged_sitting_action/TotalValidWearMin;
                     
                     % Cumulative # Step Count in Action
                     Step_count_action = Action_time_frame_data(end,4) - Action_time_frame_data(1,4);
-                    % Cumulative # Step Count in Day
-                    Step_count_day = SleepWake_time_frame_data(end,4) - SleepWake_time_frame_data(1,4);
+                        
+                    %%%% SLEEP WAKE OUTCOMES %%%%
+
+                        TotalWakeMin = sum(SleepWake_time_frame_data(:,2))./60; % Total wake minutes
+                        PercentDayValidWear = TotalValidWearMin./TotalWakeMin; % Percent of day that was valid wear
+                        PercentDay = total_timeSW./sum(total_timeSW); % of Day in Sed, Stand, Step
+                        
+                        %%% CALCULATE TOTAL TIME IN MET OUTCOME
+                        Time_MET_Wake(1) = sum(SleepWake_time_frame_data(SleepWake_time_frame_data(:,5) < handles.ControlParameters{1}(1), 2))./60;
+                        Time_MET_Wake(2) = sum(SleepWake_time_frame_data((SleepWake_time_frame_data(:,5) >= handles.ControlParameters{1}(1))...
+                            & (SleepWake_time_frame_data(:,5) <= handles.ControlParameters{1}(2)), 2))./60;
+                        Time_MET_Wake(3) = sum(SleepWake_time_frame_data(SleepWake_time_frame_data(:,5) > handles.ControlParameters{1}(2), 2))./60;
+                        
+                        
+                        % Total mintutes spent in extended sedentary bouts (>30
+                        % minutes) for Whole Wake Period
+                        
+                        prolonged_sitting_day = sum(SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800), 2))./60;
+                        num_prolonged_sed_day = numel((SleepWake_time_frame_data((SleepWake_time_frame_data(:,3) == 0) & (SleepWake_time_frame_data(:,2) >= 1800),2))./60);
+                        percent_prolonged_sed_sleep = prolonged_sitting_day/TotalWakeMin;
+
+                        % Cumulative # Step Count in Day
+                        Step_count_day = SleepWake_time_frame_data(end,4) - SleepWake_time_frame_data(1,4);
                     
-                    ActionTimeFrame.Total_Time = total_time; 
+                    %%%% PACKAGING OUTCOMES %%%% 
+                    
+                    ActionTimeFrame.Total_Time = total_time;
                     ActionTimeFrame.Time_In_MET = Time_MET;
                     ActionTimeFrame.Total_Valid_Wear_Min = TotalValidWearMin;
                     ActionTimeFrame.Total_Invalid_Wear_Min = TotalInvalidWearMin;
                     ActionTimeFrame.Valid_Wear_Percentage = ValidWearPercentage;
-                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent; 
-                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action; 
-                    ActionTimeFrame.Step_Count = Step_count_action; 
-                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed; 
-                    
-                    WakeSleep.Total_Time = total_timeSW; 
+                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent;
+                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action;
+                    ActionTimeFrame.Step_Count = Step_count_action;
+                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed;
+                    ActionTimeFrame.Percent_in_Prolonged_Sed = percent_prolonged_sed_action; 
+                    ActionTimeFrame.Sit_to_Upright_Transitions =  transitions;
+
+                    WakeSleep.Total_Time = total_timeSW;
+                    WakeSleep.Time_In_MET = Time_MET_Wake;
                     WakeSleep.Total_Wake_Min = TotalWakeMin;
                     WakeSleep.Percent_Day_of_Valid_Wear = PercentDayValidWear;
                     WakeSleep.Percent_Of_Actions_During_WakeSleep_Time_Frame = PercentDay;
                     WakeSleep.Total_Prolonged_Sed_Min = prolonged_sitting_day;
                     WakeSleep.Step_Count = Step_count_day;
                     WakeSleep.Prolonged_Sed_Count = num_prolonged_sed_day;
+                    WakeSleep.Percent_in_Prolonged_Sed = percent_prolonged_sed_sleep; 
                     
                     %L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', total_time(1)), ' mins), Standing (', sprintf('%.2f', total_time(2)), ' mins) and Stepping (', sprintf('%.2f', total_time(3)), ' mins)');
                     %L2 = horzcat('Total time spent in Light MET (', sprintf('%.2f', Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', Time_In_MET(3)), ' mins)');
@@ -259,13 +298,81 @@ classdef AP_data
                     %                 msg{3} = sprintf(L3);
                     %                 msg{4} = sprintf(L4);
                     %                 msb = msgbox(msg);
-                   
-                    logstr = 'Calculated';
                     
-                else
-                    ActionTimeFrame = struct;
-                    WakeSleep = struct;
-                    logstr = 'Non-Chronological Timeframe Pairs, Check Inputs';
+                    logstr = 'Whole Day and Action Timeframes Calculated';
+                    
+                elseif strcmp(Method, 'action')
+                    
+                    tempStart_time = datenum(datetime(handles.WorkStartInput.String));
+                    tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
+                    
+                    Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
+                   
+                    % time_frame_dates = activpal_data{1}(time_frame_index);
+                    Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
+                                          
+                    %%% CALCULATE TOTAL TIME OUTCOME 
+                    n = 1;
+                    total_time = zeros(1,3);
+                    for i = 0:2
+                        total_time(n) = sum(Action_time_frame_data(Action_time_frame_data(:,3) == i, 2))./60;
+                        n = n + 1;
+                    end
+                    
+                    %%% CALCULATE TOTAL TIME IN MET OUTCOME 
+                    Time_MET(1) = sum(Action_time_frame_data(Action_time_frame_data(:,5) < handles.ControlParameters{1}(1), 2))./60;
+                    Time_MET(2) = sum(Action_time_frame_data((Action_time_frame_data(:,5) >= handles.ControlParameters{1}(1))...
+                        & (Action_time_frame_data(:,5) <= handles.ControlParameters{1}(2)), 2))./60;
+                    Time_MET(3) = sum(Action_time_frame_data(Action_time_frame_data(:,5) > handles.ControlParameters{1}(2), 2))./60;
+                    
+                    
+                    %%% CALCULATE SIT STAND TRANSITIONS 
+                    SedentaryIndexs = find((Action_time_frame_data(:,3) == 0)); 
+                    
+                    % CHECK THE TIME FRAMES IN BETWEEN SEDENTARY SECTIONS
+                    % IF THE SECTION IS LONGER THAN OR EQUAL TO 60s THEN IT
+                    % COUNTS AS A UPRIGHT TRANSITION ELSE NOT. 
+                    transitions = 0; 
+                    for i = 1:length(SedentaryIndexs)-1
+                        if sum(Action_time_frame_data(SedentaryIndexs(i)+1:SedentaryIndexs(i+1)-1, 2)) >= 60
+                            transitions = transitions + 1; 
+                        end
+                    end 
+                    
+                    TotalValidWearMin = sum(Action_time_frame_data(:,2))./60;
+                    TotalInvalidWearMin = 0;
+                    if any(activpal_data{2}(Action_time_frame_index,end) == 1) == 1
+                        % Find Unmarked Within Action Timeframe
+                        TotalInvalidWearMin = sum(Action_time_frame_data(Action_time_frame_data(:,end) == 0, 2))./60;
+                        % Find Marked Within Action Timeframe
+                        TotalValidWearMin = sum(Action_time_frame_data(Action_time_frame_data(:,end) == 1, 2))./60;
+                    end
+                                        
+                    ValidWearPercentage = TotalValidWearMin./(TotalInvalidWearMin + TotalValidWearMin); % Percentage of Valid re: Invalid
+                    ActionPercent = total_time./sum(total_time); % of Action Timeframe in Sed, Stand, and Step
+                    
+                    % Total mintutes spent in extended sedentary bouts (?30
+                    % minutes) in Action Timeframe
+                    prolonged_sitting_action = sum(Action_time_frame_data(( Action_time_frame_data(:,3) == 0) & (Action_time_frame_data(:,2) >= 1800), 2))./60;
+                    num_prolonged_sed = numel((Action_time_frame_data(( Action_time_frame_data(:,3) == 0) & (Action_time_frame_data(:,2) >= 1800),2))./60);
+                    percent_prolonged_sed_action = prolonged_sitting_action/TotalValidWearMin;
+                    
+                    % Cumulative # Step Count in Action
+                    Step_count_action = Action_time_frame_data(end,4) - Action_time_frame_data(1,4);
+                        
+                    ActionTimeFrame.Total_Time = total_time;
+                    ActionTimeFrame.Time_In_MET = Time_MET;
+                    ActionTimeFrame.Total_Valid_Wear_Min = TotalValidWearMin;
+                    ActionTimeFrame.Total_Invalid_Wear_Min = TotalInvalidWearMin;
+                    ActionTimeFrame.Valid_Wear_Percentage = ValidWearPercentage;
+                    ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame = ActionPercent;
+                    ActionTimeFrame.Total_Prolonged_Sed_Min = prolonged_sitting_action;
+                    ActionTimeFrame.Step_Count = Step_count_action;
+                    ActionTimeFrame.Prolonged_Sed_Count = num_prolonged_sed;
+                    ActionTimeFrame.Percent_in_Prolonged_Sed = percent_prolonged_sed_action; 
+                    ActionTimeFrame.Sit_to_Upright_Transitions =  transitions;
+                    
+                    logstr = 'Action Timeframe Outcomes Calculated'; 
                 end
                 
             catch
@@ -278,75 +385,124 @@ classdef AP_data
         
         % EXPORT ACTIVPAL OUTCOMES AS CSV
         function ExportOutcomes(handles)
-            
+                        
             [file,path] = uiputfile('*.csv');
+                      
+            headers = {'Wake Datetime';...
+                'Sleep Datetime';...
+                'Action Start Datetime';...
+                'Action End Datetime';...
+                'Total Valid Wear during Action Timeframe (min)';...
+                'Total Invalid Wear during Action Timeframe (min)';...
+                'Valid Wear during Action Timeframe (%)';...
+                'Total Time in Sedentary (min)';...
+                'Total Time in Standing (min)';...
+                'Total Time in Stepping (min)';...
+                'Sedentary during Action Timeframe (%)';...
+                'Standing during Action Timeframe (%)';...
+                'Stepping during Action Timeframe (%)';...
+                'Total Time in Light MET (min)';...
+                'Total Time in Moderate MET (min)';...
+                'Total Time in Vigorous MET (min)';...
+                'Total Prolonged Sedentary (min)';...
+                'Prolonged Sedentary during Action Time Frame (%)';...
+                'Prolonged Sedentary Count';...
+                'Step Count during Action Timeframe';...
+                'Sit to Upright Transitions';...
+                'Total Wholeday Wear Time (min)';...
+                'Total Wholeday Time in Sedentary (min)';...
+                'Total Wholeday Time in Standing (min)';...
+                'Total Wholeday Time in Stepping (min)';...
+                'Total Wholeday Time in Light MET (min)';...
+                'Total Wholeday Time in Moderate MET (min)';...
+                'Total Wholeday Time in Vigorous MET (min)';...
+                'Total Valid Wear during Wholeday Timeframe (%)';...
+                'Sedentary during Wholeday Timeframe (%)';...
+                'Standing during Wholeday Timeframe (%)';...
+                'Stepping during Wholeday Timeframe (%)';...
+                'Total Wholeday Prolonged Sedentary (min)';...
+                'Prolonged Sedentary during Action Time Frame (%)';...
+                'Wholeday Prolonged Sedentary Count';...
+                'Wholeday Step Count'};
             
-            fid = fopen(horzcat(path,file), 'w') ;
+            for i = 1:size(handles.SavedCalculatedData,1)
             
-            headers = {'Wake Datetime'; 'Sleep Datetime'; 'Action Start Datetime'; 'Action End Datetime';...
-                'Total Valid Wear during Action Timeframe (min)'; 'Total Invalid Wear during Action Timeframe (min)'; 'Valid Wear during Action Timeframe (%)';...
-                'Total Time in Sedentary (min)'; 'Total Time in Standing (min)'; 'Total Time in Stepping (min)';...
-                'Sedentary during Action Timeframe (%)'; 'Standing during Action Timeframe (%)'; 'Stepping during Action Timeframe (%)';...
-                'Total Time in Light MET (min)'; 'Total Time in Moderate MET (min)'; 'Total Time in Vigorous MET (min)';...
-                'Total Prolonged Sedentary (min)'; 'Prolonged Sedentary Count'; 'Step Count'; 'Sit to Upright Transitions';...
-                'Total Wholeday Wear Time (min)'; 'Total Wholeday Time in Sedentary (min)'; 'Total Wholeday Time in Standing (min)'; 'Total Wholeday Time in Stepping (min)';...
-                'Total Valid Wear during Wholeday Timeframe (%)'; 'Sedentary during Wholeday Timeframe (%)'; 'Standing during Wholeday Timeframe (%)'; 'Stepping during Wholeday Timeframe (%)';...
-                'Total Wholeday Prolonged Sedentary (min)'; 'Wholeday Prolonged Sedentary Count'; 'Wholeday Step Count'};
-
-            data =  {handles.SavedCalculatedData{1,1}{1}; handles.SavedCalculatedData{1,1}{2};  handles.SavedCalculatedData{1,1}{3}; handles.SavedCalculatedData{1,1}{4};...
-                handles.SavedCalculatedData{1,2}.Total_Valid_Wear_Min;...
-                handles.SavedCalculatedData{1,2}.Total_Invalid_Wear_Min;...
-                handles.SavedCalculatedData{1,2}.Valid_Wear_Percentage*100;...
-                handles.SavedCalculatedData{1,2}.Total_Time(1); handles.SavedCalculatedData{1,2}.Total_Time(2); handles.SavedCalculatedData{1,2}.Total_Time(3);...
-                handles.SavedCalculatedData{1,2}.Percent_Of_Actions_During_Action_Time_Frame(1)*100; handles.SavedCalculatedData{1,2}.Percent_Of_Actions_During_Action_Time_Frame(2)*100; handles.SavedCalculatedData{1,2}.Percent_Of_Actions_During_Action_Time_Frame(3)*100;...
-                handles.SavedCalculatedData{1,2}.Time_In_MET(1); handles.SavedCalculatedData{1,2}.Time_In_MET(2); handles.SavedCalculatedData{1,2}.Time_In_MET(3);...
-                handles.SavedCalculatedData{1,2}.Total_Prolonged_Sed_Min; handles.SavedCalculatedData{1,2}.Prolonged_Sed_Count; handles.SavedCalculatedData{1,2}.Step_Count;...
-                handles.SavedCalculatedData{1,2}.Sit_to_Upright_Transitions;...
-                handles.SavedCalculatedData{1,3}.Total_Wake_Min;...
-                handles.SavedCalculatedData{1,3}.Total_Time(1); handles.SavedCalculatedData{1,3}.Total_Time(2); handles.SavedCalculatedData{1,3}.Total_Time(3);...
-                handles.SavedCalculatedData{1,3}.Percent_Day_of_Valid_Wear;...
-                handles.SavedCalculatedData{1,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(1)*100; handles.SavedCalculatedData{1,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(2)*100; handles.SavedCalculatedData{1,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(3)*100;...
-                handles.SavedCalculatedData{1,3}.Total_Prolonged_Sed_Min; handles.SavedCalculatedData{1,3}.Prolonged_Sed_Count;...
-                handles.SavedCalculatedData{1,3}.Step_Count
+            fid = fopen(horzcat(path,horzcat(file(1:end-4),'_', num2str(i), file(end-3:end))), 'w') ;
+            
+            data =  {handles.SavedCalculatedData{i,1}{1};...
+                handles.SavedCalculatedData{i,1}{2};...
+                handles.SavedCalculatedData{i,1}{3};...
+                handles.SavedCalculatedData{i,1}{4};...
+                handles.SavedCalculatedData{i,2}.Total_Valid_Wear_Min;...
+                handles.SavedCalculatedData{i,2}.Total_Invalid_Wear_Min;...
+                handles.SavedCalculatedData{i,2}.Valid_Wear_Percentage*100;...
+                handles.SavedCalculatedData{i,2}.Total_Time(1);...
+                handles.SavedCalculatedData{i,2}.Total_Time(2);...
+                handles.SavedCalculatedData{i,2}.Total_Time(3);...
+                handles.SavedCalculatedData{i,2}.Percent_Of_Actions_During_Action_Time_Frame(1)*100;...
+                handles.SavedCalculatedData{i,2}.Percent_Of_Actions_During_Action_Time_Frame(2)*100;...
+                handles.SavedCalculatedData{i,2}.Percent_Of_Actions_During_Action_Time_Frame(3)*100;...
+                handles.SavedCalculatedData{i,2}.Time_In_MET(1);...
+                handles.SavedCalculatedData{i,2}.Time_In_MET(2);...
+                handles.SavedCalculatedData{i,2}.Time_In_MET(3);...
+                handles.SavedCalculatedData{i,2}.Total_Prolonged_Sed_Min;...
+                handles.SavedCalculatedData{i,2}.Percent_in_Prolonged_Sed.*100;...
+                handles.SavedCalculatedData{i,2}.Prolonged_Sed_Count;...
+                handles.SavedCalculatedData{i,2}.Step_Count;...
+                handles.SavedCalculatedData{i,2}.Sit_to_Upright_Transitions;...
+                handles.SavedCalculatedData{i,3}.Total_Wake_Min;...
+                handles.SavedCalculatedData{i,3}.Total_Time(1);...
+                handles.SavedCalculatedData{i,3}.Total_Time(2);...
+                handles.SavedCalculatedData{i,3}.Total_Time(3);...
+                handles.SavedCalculatedData{i,3}.Time_In_MET(1);...
+                handles.SavedCalculatedData{i,3}.Time_In_MET(2);...
+                handles.SavedCalculatedData{i,3}.Time_In_MET(3);...
+                handles.SavedCalculatedData{i,3}.Percent_Day_of_Valid_Wear;...
+                handles.SavedCalculatedData{i,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(1)*100;...
+                handles.SavedCalculatedData{i,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(2)*100;...
+                handles.SavedCalculatedData{i,3}.Percent_Of_Actions_During_WakeSleep_Time_Frame(3)*100;...
+                handles.SavedCalculatedData{i,3}.Total_Prolonged_Sed_Min;...
+                handles.SavedCalculatedData{i,3}.Percent_in_Prolonged_Sed.*100;...
+                handles.SavedCalculatedData{1,3}.Prolonged_Sed_Count;...
+                handles.SavedCalculatedData{i,3}.Step_Count
                 };
-            
-            printData = [];
-            for i = 1:length(data)
-                printData = vertcat(printData, headers(i), data(i));
+                printData = [];
+                for ii = 1:length(data)
+                    printData = vertcat(printData, headers(ii), data(ii));
+                end
+
+                fprintf(fid, '%s,%s\n', printData{1:8});
+                fprintf(fid, '%s,%.4f\n', printData{9:end});
+                fclose(fid);
             end
-            
-            fprintf(fid, '%s,%s\n', printData{1:8});
-            fprintf(fid, '%s,%.4f\n', printData{9:end});
-            fclose(fid);
-            
         end
         
         % EXPORT ACTIVPAL AS CSV
-        function Export(varargin)
-            [file,path] = uiputfile('*.csv');
-            
-            metadata = cellstr(varargin{2});
+        function Export(handles)
+            selpath = uigetdir('C:\', 'Select Save Directory'); 
             
             headers = {'Time',...
                 'DataCount (samples)',...
                 'Interval (s)',...
-                'ActivityCode (0=sedentary, 1= standing, 2=stepping)',...
+                'ActivityCode',...
                 'CumulativeStepCount',...
                 'Activity Score (MET.h)',...
-                'Abs(sumDiff)'};
+                'Abs(sumDiff)',...
+                'Marks'};
             
+            commaHeader = [headers;repmat({','},1,numel(headers))];
+            commaHeader = commaHeader(:)';
+            textHeader = cell2mat(commaHeader);
+
             for i = 1:length(headers)
                 headers{i} = char(headers{i});
             end
             
-            fid = fopen(horzcat(path,file), 'W');
-            for i = 1:length(metadata)
-                fprintf(fid, '%s\n', metadata{i});
-            end
-            fprintf(fid, '%s\n', horzcat(headers{1},headers{2},headers{3},headers{4},headers{5}, headers{6}, headers{7}))
+            fid = fopen(horzcat(selpath,'\', horzcat(handles.importedfile_name)), 'wt');
+            fprintf(fid, '%s\n', textHeader);
             fclose(fid);
-            
-            dlmwrite(horzcat(path,file), horzcat(datenum(varargin{1}{1}), varargin{1}{2}), 'delimiter', ',', 'precision', 6 ,'-append');
+
+            dlmwrite(horzcat(selpath,'\', horzcat(handles.importedfile_name)), horzcat(datenum(handles.activpal_data.memory{1}), handles.activpal_data.memory{2}), 'delimiter', ',', 'precision', 6 ,'-append');
             
         end
         
