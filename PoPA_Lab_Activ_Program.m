@@ -241,7 +241,7 @@ try
                         
                     else % Execute Only When Action Time Frame is Valid
                         
-                        timeStamp = {handles.WorkStartInput.String, handles.WorkEndInput.String};
+                        timeStamp = {NaN, NaN, handles.WorkStartInput.String, handles.WorkEndInput.String};
                         [ActionTimeFrame, WakeSleep, logstr] = AP_data.calculate_activpalData(handles, 'action');
                         
                     end
@@ -311,18 +311,23 @@ function log_box_Callback(hObject, eventdata, handles)
 % FILE TAB 
 % --------------------------------------------------------------------
 function FileIO_Callback(hObject, eventdata, handles)
-function Save_Activpal_Selection_Callback(hObject, eventdata, handles)
+function Save_Activpal_Outcomes_Callback(hObject, eventdata, handles)
 try
-    
-    AP_data.ExportOutcomes(handles)
-    logMessage.GenerateLogMessage(handles.log_box, 'Outcomes Saved') 
-
-    %AP_data.Export(handles.activpal_data.memory, handles.AP_file_name.String)
-    % logMessage.GenerateLogMessage(handles.log_box, 'New Activpal CSV Saved') 
-
+    if isfield(handles, 'SavedCalculatedData') == 1
+        AP_data.ExportOutcomes(handles)
+        logMessage.GenerateLogMessage(handles.log_box, 'Outcomes Saved')
+    else
+        logMessage.GenerteLogMessage(handles.log_box, 'Nothing to Save')
+    end
+   
 catch ME
     errordlg(ME.message, 'Error Alert');
 end
+function Save_Activpal_Data_Callback(hObject, eventdata, handles)
+
+    AP_data.Export(handles)
+    logMessage.GenerateLogMessage(handles.log_box, 'New Activpal CSV Saved') 
+    
 function Save_Action_Log_Button_Callback(hObject, eventdata, handles)
 try
     logMessage.Export(handles.log_box);
@@ -484,32 +489,3 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 set(hObject, 'String',  GUIobj.initialization_text); 
-
-
-
-
-           %                     L1 = horzcat('Total time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Total_Time(1)), ' mins), Standing (', sprintf('%.2f', ActionTimeFrame.Total_Time(2)), ' mins) and Stepping (', sprintf('%.2f', ActionTimeFrame.Total_Time(3)), ' mins)');
-                    %                     L2 = horzcat('Percent time spent in Sitting (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(1)), '), Standing (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(2)), ') and Stepping (', sprintf('%.2f', ActionTimeFrame.Percent_Of_Actions_During_Action_Time_Frame(3)), ')');
-                    %                     L3 = horzcat('Total time spent in Light MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(1)), ' mins), Moderate MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(2)), ' mins) and Vigorous MET (', sprintf('%.2f', ActionTimeFrame.Time_In_MET(3)), ' mins)');
-                    %                     L4 = horzcat('Number of prolonged sedentary count: ', sprintf('%.2f', ActionTimeFrame.Prolonged_Sed_Count), ' over ', sprintf('%.2f', ActionTimeFrame.Total_Prolonged_Sed_Min), ' Min');
-                    %                     L5 = horzcat('Total valid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Valid_Wear_Min), ' Min');
-                    %                     L6 = horzcat('Total invalid wear time: ', sprintf('%.2f', ActionTimeFrame.Total_Invalid_Wear_Min), ' Min');
-                    %                     L7 = horzcat('Percent of valid wear time: ', sprintf('%.2f', ActionTimeFrame.Valid_Wear_Percentage*100), ' %');
-                    %
-                    %                     formatSpec = '%s\n%s\n%s\n%s\n%s\n%s\n%s';
-                    %                     fprintf(formatSpec, L1, L2, L3, L4,L5,L6,L7);
-                    %
-                    %                     msg = cell(4,1);
-                    %                     msg{1} = sprintf(L1);
-                    %                     msg{2} = sprintf(L2);
-                    %                     msg{3} = sprintf(L3);
-                    %                     msg{4} = sprintf(L4);
-                    %                     msg{5} = sprintf(L5);
-                    %                     msg{6} = sprintf(L6);
-                    %                     msg{7} = sprintf(L7);
-
-
-
-
-
-
