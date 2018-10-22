@@ -1,4 +1,4 @@
-% PopPA Lab Activity Tracker Analysis Program 
+% PopPA Lab Activity Analysis Program 
 % Created by: Anthony Chen, PhD Student 
 % Start Date: July 4th, 2018
 % Associated Objs 
@@ -237,8 +237,7 @@ try
                         % for DeMartch Algo
                         
                 end
-        
-                
+
             case 5 % INSERT SLEEP 
                 handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
@@ -268,7 +267,6 @@ try
                         
                 end
      
-                
             case 6
                 
                 if ~isempty(regexp(handles.WorkStartInput.String, '(\d+)-(\w+)-(\d+)', 'once')) && ~isempty(regexp(handles.WorkEndInput.String, '(\d+)-(\w+)-(\d+)', 'once'))...
