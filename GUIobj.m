@@ -55,7 +55,17 @@ classdef GUIobj
             ms = src.Parent.Children(end-3).Value-1;
 
             TIME = [hr, min, sec, ms*10];
-            src.Parent.Parent.Children(2).UserData = TIME; 
+            
+            val = 0; 
+            for i = 1:length(src.Parent.Parent.Children)
+                if strcmp(src.Parent.Parent.Children(i).Name, 'PoPA_Lab_Activ_Program') == 1 
+                    val = i; 
+                    break 
+                end
+            end 
+            
+            src.Parent.Parent.Children(val).UserData = TIME; 
+            
             close(src.Parent) 
             
         end 

@@ -1,4 +1,4 @@
-% PopPA Lab Activity Tracker Analysis Program 
+% PopPA Lab Activity Analysis Program 
 % Created by: Anthony Chen, PhD Student 
 % Start Date: July 4th, 2018
 % Associated Objs 
@@ -209,20 +209,64 @@ try
                     logstr = 'Error in Executing Action (Check input times)';
                 end
                 
-            case 4
+            case 4 % INSERT WAKE
                 handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
                 
-                [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
-                guidata(hObject, handles);
+                val = sleep_algorithm.Check_Sleep_Algo(handles);
                 
-            case 5
+                switch val
+                    case 1
+                        [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
+                        guidata(hObject, handles);
+                        
+                    case 2
+                        wake_button_Callback(handles.wake_button, eventdata,handles);
+                        
+                        d = datevec(handles.wake_insert.String);
+                        InsertDay = datetime(d(:,1:3));
+                        time_selected = handles.wake_insert.String(strfind(handles.wake_insert.String, ' ')+1:end);
+                        
+                        [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
+                        logMessage.GenerateLogMessage(handles.log_box, logstr)
+
+                        [handles, logstr] = sleep_algorithm.insertWake(handles, time_selected, InsertDay);
+                        guidata(hObject, handles);
+                        
+                    case 3
+                        % for DeMartch Algo
+                        
+                end
+
+            case 5 % INSERT SLEEP 
                 handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
                 
-                [handles, logstr] = sleep_algorithm.insertSleep(handles, time_selected, InsertDay);
-                guidata(hObject, handles);
+                val = sleep_algorithm.Check_Sleep_Algo(handles);
                 
+                switch val
+                    case 1
+                        [handles, logstr] = sleep_algorithm.insertSleep(handles, time_selected, InsertDay);
+                        guidata(hObject, handles);
+                        
+                    case 2
+                        sleep_button_Callback(handles.sleep_button, eventdata,handles);
+                        
+                        d = datevec(handles.sleep_insert.String);
+                        InsertDay = datetime(d(:,1:3));
+                        time_selected = handles.sleep_insert.String(strfind(handles.sleep_insert.String, ' ')+1:end);
+                        
+                        [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
+                        logMessage.GenerateLogMessage(handles.log_box, logstr)
+                        
+                        [handles, logstr] = sleep_algorithm.insertSleep(handles, time_selected, InsertDay);
+                        guidata(hObject, handles);
+                        
+                    case 3
+                        % for DeMartch Algo
+                        
+                end
+     
             case 6
                 
                 if ~isempty(regexp(handles.WorkStartInput.String, '(\d+)-(\w+)-(\d+)', 'once')) && ~isempty(regexp(handles.WorkEndInput.String, '(\d+)-(\w+)-(\d+)', 'once'))...
