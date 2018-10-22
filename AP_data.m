@@ -46,8 +46,11 @@ classdef AP_data
             AP_datelist = datestr(date_vector(date_transition_indexs,:), 1);
             
             % [activpal_imported_data_datevec, activpal_imported_data, AP_metadata, AP_subjectID, AP_datelist, logstr] 
-            
-            activpal_data = {formatted_date,  horzcat(temp_data(:,[2:end]), nan(size(temp_data,1),1))}; 
+            if size(temp_data) == 7  
+                activpal_data = {formatted_date,  horzcat(temp_data(:,[2:end]), nan(size(temp_data,1),1))}; 
+            else 
+                activpal_data = {formatted_date,  horzcat(temp_data(:,[2:end]))}; 
+            end 
             
             % Find Journal Column from Activpal Metadata
             start_date = handles.journal_data.memory{strcmp(cellstr(num2str(AP_subjectID)), handles.journal_data.memory(:,1)), 3};
@@ -501,8 +504,12 @@ classdef AP_data
             fid = fopen(horzcat(selpath,'\', horzcat(handles.importedfile_name)), 'wt');
             fprintf(fid, '%s\n', textHeader);
             fclose(fid);
+            
+            Datenum_formatIn = 'dd-mmm-yyyy HH:MM:SS';
+            dates = datenum(handles.activpal_data.memory{1});
+            dates = dates - datenum('30-12-1899 00:00:00', Datenum_formatIn);
 
-            dlmwrite(horzcat(selpath,'\', horzcat(handles.importedfile_name)), horzcat(datenum(handles.activpal_data.memory{1}), handles.activpal_data.memory{2}), 'delimiter', ',', 'precision', 6 ,'-append');
+            dlmwrite(horzcat(selpath,'\', horzcat(handles.importedfile_name)), horzcat(dates, handles.activpal_data.memory{2}), 'delimiter', ',', 'precision', 6 ,'-append');
             
         end
         
