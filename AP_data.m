@@ -46,7 +46,7 @@ classdef AP_data
             AP_datelist = datestr(date_vector(date_transition_indexs,:), 1);
             
             % [activpal_imported_data_datevec, activpal_imported_data, AP_metadata, AP_subjectID, AP_datelist, logstr] 
-            if size(temp_data) == 7  
+            if size(temp_data,2) == 7  
                 activpal_data = {formatted_date,  horzcat(temp_data(:,[2:end]), nan(size(temp_data,1),1))}; 
             else 
                 activpal_data = {formatted_date,  horzcat(temp_data(:,[2:end]))}; 
