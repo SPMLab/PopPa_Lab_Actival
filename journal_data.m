@@ -4,14 +4,15 @@ classdef journal_data
     
     methods(Static)
         
-        function [journal_header_count, handles] = initialize_Journal(handles) 
+        function handles = initialize_Journal(handles) 
             % Method to Initialize Journal Bootup (Header Template);
             % Read Journal Header Bootup File to initialize the number of headers per day
             % Set Default Journal Table Data
             
-            fid = fopen(horzcat(pwd,'\Resources\','Journal_Header_Bootup.csv'));
+            [f1,p1] = uigetfile('*.csv'); 
+            fid = fopen(horzcat(p1,'\',f1));
             j_header_format = textscan(fid, '%s', 'Delimiter', ',');
-            journal_header_count = length(j_header_format{1});
+            handles.journal_header_count = length(j_header_format{1});
             fclose(fid);
             
             set(handles.journal_table, 'ColumnName', j_header_format{1});
@@ -22,7 +23,7 @@ classdef journal_data
             set(handles.journal_table, 'Data', handles.journal_data.default, 'ColumnEditable', false);
         end
         
-        function [handles, logstr] = import_journal_file(journal_header_count, handles)
+        function [handles, logstr] = import_journal_file(handles)
             % Import Journal Data
             % Display Journal Data to Journal Table 
             % Save Journal Data to Memory 
@@ -38,8 +39,9 @@ classdef journal_data
                 scanned_data = textscan(fid, '%s', 'Delimiter', ',');
                 duration = inputdlg('Enter Duration of Experiment (in days):', 'Resizing Input');
                 
-                column_count = (3+journal_header_count*str2double(duration{1})); % Fixed 3 + Custom Header Count * duration of study
-                table_data = transpose(reshape(scanned_data{1},column_count,length(scanned_data{1})/column_count));
+                % journal_header_count = handles.journal_header_count;
+                % column_count = (3+journal_header_count*str2double(duration{1})); % Fixed 3 + Custom Header Count * duration of study
+                table_data = transpose(reshape(scanned_data{:}, str2double(duration), length(scanned_data{:})./str2double(duration))); 
                 
                 fclose(fid);
             end

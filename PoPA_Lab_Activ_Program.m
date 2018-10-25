@@ -41,7 +41,7 @@ function PoPA_Lab_Activ_Program_OpeningFcn(hObject, eventdata, handles, varargin
     % Disable Full Plot
     
 try    
-    [~, handles] = journal_data.initialize_Journal(handles); 
+    [handles] = journal_data.initialize_Journal(handles); 
     guidata(hObject, handles);   
     
     handles = AP_data.initializeActivpalMemory(handles);
@@ -72,8 +72,7 @@ function import_journal_Callback(hObject, eventdata, handles)
 try
     AP_data.delete_activpal_plots(handles)
     
-    [journal_header_count, handles] = journal_data.initialize_Journal(handles); % Run Journal Table Header Method
-    [handles, logstr] = journal_data.import_journal_file(journal_header_count, handles);
+    [handles, logstr] = journal_data.import_journal_file(handles);
     guidata(hObject, handles);
     
     logMessage.GenerateLogMessage(handles.log_box, logstr)
@@ -107,7 +106,8 @@ try
     GUIobj_inst.setJournalList(handles);
     GUIobj.enableJournalTable(handles);
     GUIobj.enableActionPanel(handles);
-  
+    GUIobj.enableGoodSelectionIndicator(handles); 
+    
 catch ME
     errordlg(ME.message, 'Error Alert');
 end
@@ -129,21 +129,20 @@ end
 %%% CELL SELECTION AT JOURNAL DATA TABLE
 function journal_table_CellSelectionCallback(hObject, eventdata, handles)
 try
-    str = hObject.Data{eventdata.Indices(1,1), eventdata.Indices(1,2)};
-    if size(eventdata.Indices,1) == 1 ...
-            && ~isempty(regexp(str, '\d{1,2}:\d{2,}', 'once'))...
-            && strcmp(num2str(handles.subject_id), hObject.Data{eventdata.Indices(1)}) == 1
-        
-        handles.journal_data.cell_selection = eventdata.Indices; 
-        guidata(hObject, handles);
-        
-        GUIobj.enableGoodSelectionIndicator(handles); 
-    else
-        GUIobj.disableGoodSelectionIndicator(handles); 
-    end
-        
+    %     str = hObject.Data{eventdata.Indices(1,1), eventdata.Indices(1,2)};
+    %     if size(eventdata.Indices,1) == 1 ...
+    %             && ~isempty(regexp(str, '\d{1,2}:\d{2,}', 'once'))...
+    %             && strcmp(num2str(handles.subject_id), hObject.Data{eventdata.Indices(1)}) == 1
+    
+    handles.journal_data.cell_selection = eventdata.Indices;
+    guidata(hObject, handles);
+    
+    %         GUIobj.enableGoodSelectionIndicator(handles);
+    %     else
+    %         GUIobj.disableGoodSelectionIndicator(handles);
+    %     end
 catch ME
-    errordlg(ME.message, 'Error Alert');
+    errordlg(ME.message, 'Error Alert')
 end
 
 %%% Action Panel Command
@@ -154,26 +153,32 @@ try
         f = waitbar(0,'Please wait...');
         
         listselection = hObject.Value;
-        j_data = handles.journal_data.memory;
-        j_selection = handles.journal_data.cell_selection;
-        RecordingDuration = handles.journal_data.expDuration;
+        %         j_data = handles.journal_data.memory;
+        %         j_selection = handles.journal_data.cell_selection;
+        %         RecordingDuration = handles.journal_data.expDuration;
+        %
+        %         time_selected = j_data{j_selection(1), j_selection(2)};
         
-        time_selected = j_data{j_selection(1), j_selection(2)};
-        
-        % Find Day Based on Selected Journal Cell
-        [InsertDay, ~] = ...
-            journal_data.find_day(...
-            length(handles.journal_table.ColumnName)-5, ... % Non-fixed Journal Column #
-            str2double(RecordingDuration),...               % # of Experimental Recording in Journal
-            j_selection,...                                 % Selected Cell in J Table
-            get(handles.journal_table), ...                 % Journal Table Struct
-            handles.activpal_data.memory);                  % Activpal Data in Working Memory
-        
+        %         % Find Day Based on Selected Journal Cell
+        %         [InsertDay, ~] = ...
+        %             journal_data.find_day(...
+        %             length(handles.journal_table.ColumnName)-5, ... % Non-fixed Journal Column #
+        %             str2double(RecordingDuration),...               % # of Experimental Recording in Journal
+        %             j_selection,...                                 % Selected Cell in J Table
+        %             get(handles.journal_table), ...                 % Journal Table Struct
+        %             handles.activpal_data.memory);                  % Activpal Data in Working Memory
+    
         switch listselection
             case 1
                 % Save Current Activpal State for Undo
                 handles.activpal_data.working = handles.activpal_data.memory;
                 guidata(hObject, handles);
+                
+                wake_button_Callback(handles.wake_button, eventdata,handles);
+                
+                d = datevec(handles.wake_insert.String);
+                InsertDay = datetime(d(:,1:3));
+                time_selected = handles.wake_insert.String(strfind(handles.wake_insert.String, ' ')+1:end);
                 
                 % Run Insert Function
                 [handles, logstr] = AP_data.insertToActivpalData(handles, time_selected, InsertDay);
