@@ -192,7 +192,7 @@ classdef AP_data
                     Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
                     Action_time_frame_index = Action_time_frame_index(1:end-1); 
                     
-                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers < tempSleep_time));
+                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers <= tempSleep_time));
                     SleepkWake_time_frame_index = SleepkWake_time_frame_index(1:end-1); 
 
                     % time_frame_dates = activpal_data{1}(time_frame_index);
