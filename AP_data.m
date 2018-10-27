@@ -90,23 +90,29 @@ classdef AP_data
             k = 1;
             while 1
                 try
-                    if ismember(k/length(data_for_insertion_time), [0.1:0.1:0.9])
+                    if ismember(k/length(data_for_insertion_time), [0.01:0.01:0.99])
                         waitbar(k/length(data_for_insertion_time), f , 'Inserting Event...');
                     end
                     
                     if (data_for_insertion_time(k) < insertion_datenum) && (insertion_datenum <  data_for_insertion_time(k+1))
                         
-                        insert_this_vector = data_for_insertion_matrix(k+1,:);
+                        insert_this_vector = zeros(1, size(data_for_insertion_matrix, 2));
                         
-                        insert_this_vector(2) = (data_for_insertion_time(k+1) - insertion_datenum).*24.*3600;
-                        insert_this_vector(3) = data_for_insertion_matrix(k,3);
+                        % Insert  
+                        insert_this_vector(1) = data_for_insertion_matrix(k+1,1) - (seconds(datetime(datestr(data_for_insertion_time(k+1))) - datetime(datestr(insertion_datenum))))*10;
                         
-                        data_for_insertion_matrix(k,2) = (data_for_insertion_matrix(k,2) - insert_this_vector(2));
+                        data_for_insertion_matrix(k,2) = (insert_this_vector(1) - data_for_insertion_matrix(k,1))./10; 
+                        insert_this_vector(2) = (data_for_insertion_matrix(k+1, 1) - insert_this_vector(1))./10; 
                         
+                        insert_this_vector(3:end) = data_for_insertion_matrix(k,3:end);                   
+                            
                         data_for_insertion_time = [data_for_insertion_time(1:k); insertion_datenum; data_for_insertion_time(k+1:end)];
                         data_for_insertion_matrix = [data_for_insertion_matrix(1:k,:); insert_this_vector; data_for_insertion_matrix(k+1:end,:)];
                         
-                        logstr = horzcat('Event Created for ', datestr(insertion_datenum));
+                        
+                        actions = {'Sedentary', 'Standing', 'Stepping'};
+                        
+                        logstr = horzcat('Event Created for ', datestr(insertion_datenum), ' as ', actions{insert_this_vector(3)+1});
                         
                         break
                     end
@@ -184,8 +190,11 @@ classdef AP_data
                     tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
                     
                     Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
-                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers < tempSleep_time));
+                    Action_time_frame_index = Action_time_frame_index(1:end-1); 
                     
+                    SleepkWake_time_frame_index = find((datenumbers >= tempWake_time) & (datenumbers < tempSleep_time));
+                    SleepkWake_time_frame_index = SleepkWake_time_frame_index(1:end-1); 
+
                     % time_frame_dates = activpal_data{1}(time_frame_index);
                     Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
                     SleepWake_time_frame_data = activpal_data{2}(SleepkWake_time_frame_index',:);
@@ -310,8 +319,8 @@ classdef AP_data
                     tempEnd_time = datenum(datetime(handles.WorkEndInput.String));
                     
                     Action_time_frame_index = find((datenumbers >= tempStart_time) & (datenumbers <= tempEnd_time));
-                   
-                    % time_frame_dates = activpal_data{1}(time_frame_index);
+                    Action_time_frame_index = Action_time_frame_index(1:end-1); 
+
                     Action_time_frame_data = activpal_data{2}(Action_time_frame_index',:);
                                           
                     %%% CALCULATE TOTAL TIME OUTCOME 
